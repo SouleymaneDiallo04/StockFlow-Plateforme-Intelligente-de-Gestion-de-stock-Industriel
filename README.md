@@ -1,4 +1,4 @@
-# 📦 StockFlow Intelligence
+# 📦 StockFlow
 
 <div align="center">
 
@@ -356,7 +356,6 @@ mlflow ui                        # → http://localhost:5000
 
 **Author:** 4th-year engineering student — AI & Data Science: Industrial Systems  
 **Institution:** ENSAM Meknès — Génie Industriel (Lean Six Sigma, MSP, Quality Management)  
-**Supervisor:** Pr. Brahim BAKKAS
 
 This project demonstrates that the gap between academic ML methodology and production-grade industrial tooling can be closed by a single engineer with sufficient domain knowledge and two months. The Lean Six Sigma background is not decorative — it shapes every modeling choice, from the asymmetric shortage/holding cost ratio to the Six Sigma service level reference points.
 
