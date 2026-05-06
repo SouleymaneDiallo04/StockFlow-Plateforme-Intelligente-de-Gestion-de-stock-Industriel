@@ -1,0 +1,310 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+{% block title %}Prévision de demande{% endblock %}
+{% block page_title %}Prévision de demande{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Panneau de configuration -->
+  <div class="col-lg-4">
+    <div class="sf-card sf-fade-in" style="position:sticky;top:80px">
+      <div class="sf-card-header">
+        <span class="sf-card-title"><i class="bi bi-sliders" style="color:var(--sf-info)"></i> Configuration</span>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">SKU à analyser</label>
+        <select id="sku-select" class="sf-input form-select">
+          <option value="">Sélectionner un SKU...</option>
+          {% for sku_id, name, category, profile in catalog %}
+          <option value="{{ sku_id }}" data-category="{{ category }}" data-profile="{{ profile }}">
+            {{ sku_id }} — {{ name|truncatechars:35 }}
+          </option>
+          {% endfor %}
+        </select>
+        <div id="sku-meta" style="font-size:.72rem;color:var(--sf-text-muted);margin-top:4px"></div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Horizon de prévision (jours)</label>
+        <input type="range" id="horizon-range" min="7" max="90" value="30"
+               style="width:100%;accent-color:var(--sf-primary)">
+        <div class="d-flex justify-content-between" style="font-size:.72rem;color:var(--sf-text-muted)">
+          <span>7j</span>
+          <span id="horizon-label" style="color:var(--sf-primary);font-weight:700">30 jours</span>
+          <span>90j</span>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Modèles à comparer</label>
+        <div class="d-flex flex-column gap-2">
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer">
+            <input type="checkbox" name="models" value="SARIMAX" checked style="accent-color:var(--sf-info)">
+            <span>SARIMAX <span style="color:var(--sf-text-muted);font-size:.7rem">— baseline statistique</span></span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer">
+            <input type="checkbox" name="models" value="Prophet" checked style="accent-color:var(--sf-primary)">
+            <span>Prophet <span style="color:var(--sf-text-muted);font-size:.7rem">— Meta, robuste aux outliers</span></span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer">
+            <input type="checkbox" name="models" value="LightGBM" checked style="accent-color:var(--sf-accent)">
+            <span>LightGBM <span style="color:var(--sf-text-muted);font-size:.7rem">— gradient boosting quantile</span></span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer">
+            <input type="checkbox" name="models" value="TFT" style="accent-color:#8b5cf6">
+            <span>TFT <span style="color:var(--sf-text-muted);font-size:.7rem">— Temporal Fusion Transformer</span></span>
+          </label>
+        </div>
+      </div>
+
+      <button id="run-forecast-btn" class="sf-btn sf-btn-primary w-100" disabled>
+        <i class="bi bi-play-fill"></i> Lancer l'analyse
+      </button>
+
+      <div id="job-status-panel" class="mt-3" style="display:none">
+        <div class="d-flex align-items-center gap-2" style="font-size:.82rem;color:var(--sf-text-muted)">
+          <div class="sf-spinner" id="job-spinner"></div>
+          <span id="job-status-text">Initialisation...</span>
+        </div>
+        <div class="mt-2" style="height:4px;background:var(--sf-border);border-radius:999px;overflow:hidden">
+          <div id="job-progress" style="height:100%;width:0%;background:var(--sf-primary);border-radius:999px;transition:width .5s ease"></div>
+        </div>
+      </div>
+
+      <!-- Info métriques -->
+      <div class="mt-4" style="border-top:1px solid var(--sf-border);padding-top:16px">
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sf-text-muted);margin-bottom:10px">Métriques d'évaluation</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:.75rem;color:var(--sf-text-muted)">
+          <div><strong style="color:var(--sf-text)">MASE</strong> — Métrique principale. &lt;1 = meilleur que le naïf.</div>
+          <div><strong style="color:var(--sf-text)">Coverage</strong> — % valeurs dans l'IC. Cible : niveau nominal.</div>
+          <div><strong style="color:var(--sf-text)">Winkler</strong> — Pénalise IC larges et non-couvertures. Plus bas = mieux.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Résultats -->
+  <div class="col-lg-8">
+    <div id="results-placeholder" class="sf-card" style="min-height:400px;display:flex;align-items:center;justify-content:center">
+      <div class="sf-empty">
+        <div class="sf-empty-icon">📈</div>
+        <div class="sf-empty-title">Aucune analyse lancée</div>
+        <div class="sf-empty-text">Sélectionnez un SKU et configurez les paramètres.</div>
+      </div>
+    </div>
+
+    <div id="results-container" style="display:none">
+      <!-- Tableau de comparaison -->
+      <div class="sf-card mb-4 sf-fade-in">
+        <div class="sf-card-header">
+          <span class="sf-card-title"><i class="bi bi-table" style="color:var(--sf-accent)"></i> Comparaison des modèles</span>
+          <div id="best-model-badge"></div>
+        </div>
+        <div id="comparison-table-container" style="overflow-x:auto"></div>
+      </div>
+
+      <!-- Graphique Plotly -->
+      <div class="sf-card mb-4 sf-fade-in" style="animation-delay:.06s">
+        <div class="sf-card-header">
+          <span class="sf-card-title"><i class="bi bi-graph-up" style="color:var(--sf-info)"></i> Prévisions avec intervalles de confiance à 90%</span>
+        </div>
+        <div id="forecast-chart" style="height:420px"></div>
+      </div>
+
+      <!-- Note méthodologique -->
+      <div class="sf-card sf-fade-in" style="animation-delay:.12s">
+        <div class="sf-card-header">
+          <span class="sf-card-title"><i class="bi bi-info-circle" style="color:var(--sf-text-muted)"></i> Note méthodologique</span>
+        </div>
+        <div style="font-size:.82rem;color:var(--sf-text-muted);line-height:1.8">
+          <p>Les intervalles de confiance sont calibrés par <strong style="color:var(--sf-text)">conformal prediction</strong> (méthode EnbPI) — aucune hypothèse gaussienne. La couverture garantie est vérifiable empiriquement via le Coverage Rate.</p>
+          <p>L'évaluation suit un protocole <strong style="color:var(--sf-text)">walk-forward cross-validation</strong> — la seule méthode valide pour les séries temporelles. Le k-fold standard viole l'ordre causal et est exclu.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Historique -->
+{% if recent_jobs %}
+<div class="sf-card mt-4 sf-fade-in">
+  <div class="sf-card-header">
+    <span class="sf-card-title"><i class="bi bi-clock-history" style="color:var(--sf-text-muted)"></i> Analyses récentes</span>
+  </div>
+  <table class="sf-table">
+    <thead><tr><th>SKU</th><th>Statut</th><th>Meilleur modèle</th><th>Date</th><th></th></tr></thead>
+    <tbody>
+      {% for job in recent_jobs %}
+      <tr>
+        <td style="font-family:var(--sf-mono);font-size:.82rem;font-weight:600">{{ job.sku_id }}</td>
+        <td>
+          <span class="sf-badge {% if job.status == 'success' %}sf-badge-ok{% elif job.status == 'failed' %}sf-badge-out{% else %}sf-badge-low{% endif %}">
+            {{ job.get_status_display }}
+          </span>
+        </td>
+        <td style="font-size:.82rem">
+          {% if job.status == 'success' %}
+            {% with r=job.result %}
+              {% if r %}{{ r.best_model|default:"—" }}{% else %}—{% endif %}
+            {% endwith %}
+          {% else %}—{% endif %}
+        </td>
+        <td style="font-size:.75rem;color:var(--sf-text-muted)">{{ job.updated_at|date:"d/m/Y H:i" }}</td>
+        <td>
+          {% if job.status == 'success' %}
+          <button class="sf-btn sf-btn-ghost sf-btn-sm load-result-btn" data-job-id="{{ job.job_id }}">
+            Charger
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const COLORS = { SARIMAX:'#3b82f6', Prophet:'#10b981', LightGBM:'#f59e0b', TFT:'#8b5cf6' };
+const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
+
+document.getElementById('sku-select').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  document.getElementById('run-forecast-btn').disabled = !this.value;
+  if (this.value) {
+    document.getElementById('sku-meta').textContent = `${opt.dataset.category} · Profil : ${opt.dataset.profile}`;
+  }
+});
+
+document.getElementById('horizon-range').addEventListener('input', function() {
+  document.getElementById('horizon-label').textContent = this.value + ' jours';
+});
+
+document.getElementById('run-forecast-btn').addEventListener('click', async function() {
+  const skuId   = document.getElementById('sku-select').value;
+  const horizon = document.getElementById('horizon-range').value;
+  const models  = Array.from(document.querySelectorAll('input[name="models"]:checked')).map(cb => cb.value);
+  if (!skuId || !models.length) return;
+
+  this.disabled = true;
+  this.innerHTML = '<div class="sf-spinner" style="width:16px;height:16px"></div> En cours...';
+  document.getElementById('job-status-panel').style.display = 'block';
+  document.getElementById('results-placeholder').style.display = 'none';
+
+  let body = new URLSearchParams({ sku_id: skuId, horizon });
+  models.forEach(m => body.append('models', m));
+
+  const resp = await fetch("{% url 'ml_forecast_run' %}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: body.toString(),
+  });
+  const data = await resp.json();
+  if (!data.job_id) { alert('Erreur : ' + (data.error || 'Inconnue')); resetBtn(); return; }
+  pollJob(data.job_id);
+});
+
+function pollJob(jobId, p = 0) {
+  const msgs = ['Chargement des données...', 'Entraînement SARIMAX...', 'Entraînement Prophet...', 'Entraînement LightGBM...', 'Évaluation multi-modèles...'];
+  document.getElementById('job-status-text').textContent = msgs[Math.min(Math.floor(p / 20), msgs.length - 1)];
+  document.getElementById('job-progress').style.width = Math.min(p + 5, 95) + '%';
+  setTimeout(async () => {
+    const r = await fetch(`/api/ml/job/${jobId}/status/`);
+    const d = await r.json();
+    if (d.status === 'success')      { document.getElementById('job-progress').style.width = '100%'; loadResult(jobId); }
+    else if (d.status === 'failed')  { document.getElementById('job-status-text').textContent = 'Erreur : ' + d.error; resetBtn(); }
+    else                             { pollJob(jobId, p + 15); }
+  }, 2500);
+}
+
+async function loadResult(jobId) {
+  const r    = await fetch(`/api/ml/job/${jobId}/result/`);
+  const data = await r.json();
+  document.getElementById('results-placeholder').style.display = 'none';
+  document.getElementById('results-container').style.display   = 'block';
+  renderComparisonTable(data.comparison_table || []);
+  renderForecastChart(data);
+  resetBtn();
+}
+
+function renderComparisonTable(rows) {
+  if (!rows.length) return;
+  const cols = Object.keys(rows[0]);
+  let html = '<table class="sf-table"><thead><tr>';
+  cols.forEach(c => html += `<th>${c}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach((row, i) => {
+    html += `<tr style="${i === 0 ? 'background:rgba(16,185,129,.06)' : ''}">`;
+    cols.forEach(c => {
+      let v = row[c] ?? '—';
+      if (c === 'model' && i === 0) {
+        v = `<span class="sf-badge sf-badge-ok">${row[c]}</span>`;
+        document.getElementById('best-model-badge').innerHTML =
+          `<span class="sf-badge sf-badge-ok"><i class="bi bi-trophy-fill me-1"></i>${row[c]}</span>`;
+      }
+      html += `<td style="font-size:.82rem">${v}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('comparison-table-container').innerHTML = html;
+}
+
+function renderForecastChart(data) {
+  const grid = isDark() ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const text = isDark() ? '#8892a4' : '#64748b';
+  const traces = [];
+
+  if (data.train_dates && data.train_values) {
+    traces.push({ x: data.train_dates.slice(-90), y: data.train_values.slice(-90),
+      mode:'lines', name:'Historique', line:{color:'#94a3b8',width:1.5} });
+  }
+  if (data.test_dates && data.test_values) {
+    traces.push({ x: data.test_dates, y: data.test_values,
+      mode:'lines+markers', name:'Réel (test)',
+      line:{color:'#e2e8f0',width:2,dash:'dot'}, marker:{size:4} });
+  }
+  (data.forecasts || []).forEach(f => {
+    const color = COLORS[f.model_name] || '#94a3b8';
+    traces.push({
+      x:[...f.forecast_dates, ...f.forecast_dates.slice().reverse()],
+      y:[...f.upper_bound, ...f.lower_bound.slice().reverse()],
+      fill:'toself', fillcolor:color+'22', line:{color:'transparent'},
+      showlegend:false, hoverinfo:'skip',
+    });
+    traces.push({ x:f.forecast_dates, y:f.point_forecast,
+      mode:'lines', name:f.model_name, line:{color,width:2.5} });
+  });
+
+  Plotly.newPlot('forecast-chart', traces, {
+    paper_bgcolor:'transparent', plot_bgcolor:'transparent',
+    font:{ family:"'Sora',sans-serif", color:text, size:11 },
+    xaxis:{ gridcolor:grid, tickfont:{size:10} },
+    yaxis:{ gridcolor:grid, tickfont:{size:10}, title:'Demande (unités)' },
+    legend:{ bgcolor:'transparent', font:{size:11} },
+    margin:{ l:50, r:20, t:20, b:40 },
+    hovermode:'x unified',
+  }, { responsive:true });
+}
+
+function resetBtn() {
+  const btn = document.getElementById('run-forecast-btn');
+  btn.disabled = false;
+  btn.innerHTML = "<i class='bi bi-play-fill'></i> Lancer l'analyse";
+}
+
+document.querySelectorAll('.load-result-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('results-placeholder').style.display = 'none';
+    loadResult(btn.dataset.jobId);
+  });
+});
+</script>
+{% endblock %}

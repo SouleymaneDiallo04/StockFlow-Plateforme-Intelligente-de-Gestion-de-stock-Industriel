@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — StockFlow Intelligence</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  {% load static %}
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <style>
+    .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--sf-bg);position:relative;overflow:hidden;}
+    .auth-page::before{content:'';position:absolute;top:-30%;left:-20%;width:60%;height:80%;background:radial-gradient(ellipse,rgba(16,185,129,.12) 0%,transparent 70%);pointer-events:none;}
+    .auth-page::after{content:'';position:absolute;bottom:-20%;right:-10%;width:50%;height:60%;background:radial-gradient(ellipse,rgba(245,158,11,.08) 0%,transparent 70%);pointer-events:none;}
+    .auth-card{background:var(--sf-surface);border:1px solid var(--sf-border);border-radius:20px;padding:48px 40px;width:100%;max-width:440px;box-shadow:var(--sf-shadow-lg);position:relative;z-index:1;animation:fadeIn .5s ease both;}
+    .auth-brand{text-align:center;margin-bottom:36px;}
+    .auth-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--sf-primary),var(--sf-accent));border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:16px;}
+    .auth-title{font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(90deg,var(--sf-primary),var(--sf-accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .auth-subtitle{font-size:.8rem;color:var(--sf-text-muted);margin-top:4px;}
+    .auth-group{margin-bottom:18px;}
+    .auth-group label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--sf-text-muted);margin-bottom:6px;}
+    .auth-input{width:100%;background:var(--sf-surface2);border:1px solid var(--sf-border);border-radius:10px;color:var(--sf-text);padding:12px 16px;font-family:var(--sf-font);font-size:.9rem;transition:border-color .2s,box-shadow .2s;}
+    .auth-input:focus{outline:none;border-color:var(--sf-primary);box-shadow:0 0 0 3px rgba(16,185,129,.15);}
+    .auth-input::placeholder{color:var(--sf-text-muted);}
+    .auth-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--sf-primary),var(--sf-primary-d));color:#fff;border:none;border-radius:10px;font-family:var(--sf-font);font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px;}
+    .auth-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(16,185,129,.35);}
+    .auth-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px 16px;font-size:.85rem;color:#f87171;margin-bottom:20px;}
+    .auth-footer{text-align:center;margin-top:24px;font-size:.85rem;color:var(--sf-text-muted);}
+    .auth-footer a{color:var(--sf-primary);text-decoration:none;font-weight:600;}
+    .demo-accounts{margin-top:28px;padding-top:20px;border-top:1px solid var(--sf-border);}
+    .demo-label{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--sf-text-muted);text-align:center;margin-bottom:12px;}
+    .demo-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--sf-surface2);border-radius:6px;font-size:.75rem;cursor:pointer;transition:background .15s;margin-bottom:6px;}
+    .demo-item:hover{background:rgba(16,185,129,.1);}
+    .demo-item code{font-family:var(--sf-mono);color:var(--sf-accent);font-size:.72rem;}
+    .demo-role{font-size:.65rem;padding:2px 8px;border-radius:999px;font-weight:600;}
+    .demo-role.superadmin{background:rgba(239,68,68,.15);color:#f87171;}
+    .demo-role.admin{background:rgba(245,158,11,.15);color:#fbbf24;}
+    .demo-role.viewer{background:rgba(16,185,129,.15);color:#34d399;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+  </style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo">📦</div>
+      <div class="auth-title">StockFlow Intelligence</div>
+      <div class="auth-subtitle">Gestion de stock augmentée par l'IA — ENSAM Meknès</div>
+    </div>
+
+    {% if form.errors %}
+    <div class="auth-error">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>Identifiant ou mot de passe incorrect.
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="auth-group">
+        <label>Nom d'utilisateur</label>
+        <input type="text" name="username" class="auth-input" placeholder="Votre identifiant" autofocus required>
+      </div>
+      <div class="auth-group">
+        <label>Mot de passe</label>
+        <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
+      </div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="auth-btn">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Pas encore de compte ? <a href="{% url 'register' %}">S'inscrire</a>
+    </div>
+
+    <div class="demo-accounts">
+      <div class="demo-label">Comptes de démonstration</div>
+      <div class="demo-item" onclick="fillLogin('super1','super1pass')">
+        <span><code>super1</code> / <code>super1pass</code></span>
+        <span class="demo-role superadmin">Superadmin</span>
+      </div>
+      <div class="demo-item" onclick="fillLogin('admin1','admin1pass')">
+        <span><code>admin1</code> / <code>admin1pass</code></span>
+        <span class="demo-role admin">Admin</span>
+      </div>
+      <div class="demo-item" onclick="fillLogin('user1','user1pass')">
+        <span><code>user1</code> / <code>user1pass</code></span>
+        <span class="demo-role viewer">Viewer</span>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function fillLogin(u, p) {
+  document.querySelector('input[name="username"]').value = u;
+  document.querySelector('input[name="password"]').value = p;
+}
+</script>
+{% load static %}
+<script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

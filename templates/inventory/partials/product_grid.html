@@ -1,0 +1,59 @@
+{% if page_obj %}
+<div class="sf-product-grid">
+  {% for product in page_obj %}
+  <div class="sf-product-card">
+    {% if product.photo %}<img src="{{ product.photo.url }}" class="sf-product-img" alt="{{ product.name }}" loading="lazy">
+    {% else %}<div class="sf-product-img-placeholder">📦</div>{% endif %}
+    <div class="sf-product-body">
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="sf-product-category">{{ product.category.name }}</span>
+        <span class="sf-badge {% if product.status == 'active' %}sf-badge-active{% else %}sf-badge-inactive{% endif %}">{{ product.get_status_display }}</span>
+      </div>
+      <a href="{% url 'product_detail' product.pk %}" class="sf-product-name">{{ product.name }}</a>
+      <div class="d-flex align-items-center gap-2">
+        <div class="sf-product-ref">{{ product.reference }}</div>
+        {% if product.ml_sku_id %}<span style="font-family:var(--sf-mono);font-size:.6rem;color:var(--sf-info)" title="SKU ML lié">{{ product.ml_sku_id }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="sf-product-footer">
+      <span class="sf-price">{{ product.price }} DH</span>
+      <div class="d-flex align-items-center gap-2">
+        <span style="font-size:.78rem;color:var(--sf-text-muted)"><i class="bi bi-layers"></i> {{ product.stock }}</span>
+        <span class="sf-badge sf-badge-{{ product.stock_status }}">{{ product.stock_label }}</span>
+      </div>
+    </div>
+    <div class="px-3 pb-3 d-flex gap-2">
+      <a href="{% url 'product_detail' product.pk %}" class="sf-btn sf-btn-ghost sf-btn-sm flex-fill" style="justify-content:center"><i class="bi bi-eye"></i> Détail</a>
+      {% if can_manage_products %}
+      <a href="{% url 'product_update' product.pk %}" class="sf-btn sf-btn-ghost sf-btn-sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+      <a href="{% url 'product_delete' product.pk %}" class="sf-btn sf-btn-sm" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)" title="Supprimer"><i class="bi bi-trash3"></i></a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="d-flex align-items-center justify-content-between mt-4 flex-wrap gap-3">
+  <span style="font-size:.8rem;color:var(--sf-text-muted)">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }}</span>
+  <div class="sf-pagination">
+    {% if page_obj.has_previous %}
+    <a href="?q={{ query }}&category={{ category_id }}&sort={{ sort }}&status={{ status_filter }}&stock={{ stock_filter }}&page={{ page_obj.previous_page_number }}" class="sf-page-btn"><i class="bi bi-chevron-left"></i></a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}<span class="sf-page-btn active">{{ num }}</span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}<a href="?q={{ query }}&category={{ category_id }}&sort={{ sort }}&status={{ status_filter }}&stock={{ stock_filter }}&page={{ num }}" class="sf-page-btn">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?q={{ query }}&category={{ category_id }}&sort={{ sort }}&status={{ status_filter }}&stock={{ stock_filter }}&page={{ page_obj.next_page_number }}" class="sf-page-btn"><i class="bi bi-chevron-right"></i></a>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="sf-empty">
+  <div class="sf-empty-icon">🔍</div>
+  <div class="sf-empty-title">Aucun produit trouvé</div>
+  <div class="sf-empty-text">Modifiez vos filtres ou ajoutez un nouveau produit.</div>
+  {% if can_manage_products %}<a href="{% url 'product_create' %}" class="sf-btn sf-btn-primary mt-3"><i class="bi bi-plus-lg"></i> Ajouter</a>{% endif %}
+</div>
+{% endif %}

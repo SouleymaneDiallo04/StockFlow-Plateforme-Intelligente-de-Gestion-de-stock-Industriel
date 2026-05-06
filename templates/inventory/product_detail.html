@@ -1,0 +1,76 @@
+{% extends 'inventory/base.html' %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block page_title %}Détail produit{% endblock %}
+{% block content %}
+<div class="sf-pills mb-4">
+  <a href="{% url 'dashboard' %}" class="sf-pill">Dashboard</a>
+  <span style="color:var(--sf-text-muted)">›</span>
+  <a href="{% url 'product_list' %}" class="sf-pill">Produits</a>
+  <span style="color:var(--sf-text-muted)">›</span>
+  <span class="sf-pill active">{{ product.name|truncatechars:30 }}</span>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="sf-card sf-fade-in" style="padding:0;overflow:hidden">
+      {% if product.photo %}<img src="{{ product.photo.url }}" class="sf-product-detail-img" alt="{{ product.name }}">
+      {% else %}<div style="height:360px;background:var(--sf-surface2);display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:5rem;color:var(--sf-text-muted)">📦</div>{% endif %}
+    </div>
+    {% if ml_profile %}
+    <div class="sf-card mt-3 sf-fade-in" style="animation-delay:.1s;border-color:rgba(16,185,129,.3)">
+      <div class="sf-card-header" style="margin-bottom:12px;padding-bottom:12px">
+        <span class="sf-card-title" style="font-size:.85rem"><i class="bi bi-cpu-fill" style="color:var(--sf-primary)"></i> Profil ML — {{ product.ml_sku_id }}</span>
+      </div>
+      <div class="row g-2">
+        {% if ml_profile.best_forecast_model %}
+        <div class="col-6"><div style="font-size:.68rem;color:var(--sf-text-muted)">Meilleur modèle</div><div style="font-size:.82rem;font-weight:700">{{ ml_profile.best_forecast_model }}</div></div>
+        {% endif %}
+        {% if ml_profile.forecast_mase %}<div class="col-6"><div style="font-size:.68rem;color:var(--sf-text-muted)">MASE</div><div style="font-size:.82rem;font-weight:700;color:{% if ml_profile.forecast_mase < 1 %}var(--sf-primary){% else %}var(--sf-danger){% endif %}">{{ ml_profile.forecast_mase|floatformat:3 }}</div></div>{% endif %}
+        {% if ml_profile.service_level %}<div class="col-6"><div style="font-size:.68rem;color:var(--sf-text-muted)">Taux service</div><div style="font-size:.82rem;font-weight:700">{{ ml_profile.service_level|floatformat:1 }}%</div></div>{% endif %}
+        {% if ml_profile.capital_reduction %}<div class="col-6"><div style="font-size:.68rem;color:var(--sf-text-muted)">Capital −</div><div style="font-size:.82rem;font-weight:700;color:var(--sf-primary)">{{ ml_profile.capital_reduction|floatformat:1 }}%</div></div>{% endif %}
+        {% if ml_profile.spc_status %}<div class="col-12 mt-1"><span class="sf-badge {% if ml_profile.spc_status == 'in_control' %}sf-badge-ok{% elif ml_profile.spc_status == 'warning' %}sf-badge-low{% else %}sf-badge-out{% endif %}">SPC : {{ ml_profile.spc_status }}</span></div>{% endif %}
+      </div>
+      <div class="mt-2">
+        <a href="{% url 'ml_forecast' %}" class="sf-btn sf-btn-ghost sf-btn-sm me-2"><i class="bi bi-graph-up-arrow"></i> Prévoir</a>
+        <a href="{% url 'ml_optimize' %}" class="sf-btn sf-btn-ghost sf-btn-sm"><i class="bi bi-bullseye"></i> Optimiser</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7">
+    <div class="sf-card sf-fade-in" style="animation-delay:.08s">
+      <div class="mb-3">
+        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+          <span class="sf-badge sf-badge-{{ product.stock_status }}">{{ product.stock_label }}</span>
+          <span class="sf-badge {% if product.status == 'active' %}sf-badge-active{% else %}sf-badge-inactive{% endif %}">{{ product.get_status_display }}</span>
+        </div>
+        <h2 style="font-size:1.6rem;font-weight:800;margin:0 0 4px;letter-spacing:-.02em">{{ product.name }}</h2>
+        <span style="font-family:var(--sf-mono);font-size:.75rem;color:var(--sf-text-muted)">{{ product.reference }}</span>
+      </div>
+      <div class="mb-4" style="font-size:2rem;font-weight:800;color:var(--sf-accent)">{{ product.price }} <span style="font-size:1rem;font-weight:500;color:var(--sf-text-muted)">DH</span></div>
+      {% if product.description %}
+      <div class="mb-4" style="color:var(--sf-text-muted);font-size:.875rem;line-height:1.7;border-left:3px solid var(--sf-primary);padding-left:14px">{{ product.description }}</div>
+      {% endif %}
+      <div style="border-top:1px solid var(--sf-border);padding-top:16px">
+        <div class="sf-meta-row"><span class="sf-meta-label"><i class="bi bi-tag me-1"></i>Catégorie</span><span class="sf-meta-value">{{ product.category.name }}</span></div>
+        <div class="sf-meta-row"><span class="sf-meta-label"><i class="bi bi-layers me-1"></i>Stock actuel</span><span class="sf-meta-value" style="font-weight:700">{{ product.stock }} unité{{ product.stock|pluralize }}</span></div>
+        <div class="sf-meta-row"><span class="sf-meta-label"><i class="bi bi-bell me-1"></i>Seuil d'alerte</span><span class="sf-meta-value">{{ product.alert_threshold }} unité{{ product.alert_threshold|pluralize }}</span></div>
+        {% if product.ml_sku_id %}<div class="sf-meta-row"><span class="sf-meta-label"><i class="bi bi-cpu me-1"></i>SKU ML</span><span class="sf-meta-value" style="font-family:var(--sf-mono);color:var(--sf-info)">{{ product.ml_sku_id }}</span></div>{% endif %}
+        <div class="sf-meta-row"><span class="sf-meta-label"><i class="bi bi-calendar-plus me-1"></i>Créé le</span><span class="sf-meta-value">{{ product.created_at|date:"d/m/Y à H:i" }}</span></div>
+        <div class="sf-meta-row"><span class="sf-meta-label"><i class="bi bi-pencil-square me-1"></i>Modifié le</span><span class="sf-meta-value">{{ product.updated_at|date:"d/m/Y à H:i" }}</span></div>
+      </div>
+      <div class="mt-4" style="height:6px;background:var(--sf-border);border-radius:999px;overflow:hidden">
+        <div style="height:100%;width:{% if product.stock > 100 %}100{% else %}{{ product.stock }}{% endif %}%;background:{% if product.stock_status == 'out' %}var(--sf-danger){% elif product.stock_status == 'low' %}var(--sf-accent){% else %}var(--sf-primary){% endif %};border-radius:999px;transition:width .6s ease"></div>
+      </div>
+      <div class="d-flex gap-3 mt-4 flex-wrap">
+        <a href="{% url 'product_list' %}" class="sf-btn sf-btn-ghost"><i class="bi bi-arrow-left"></i> Retour</a>
+        {% if can_manage_products %}
+        <a href="{% url 'product_update' product.pk %}" class="sf-btn sf-btn-primary"><i class="bi bi-pencil-fill"></i> Modifier</a>
+        <a href="{% url 'product_delete' product.pk %}" class="sf-btn" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)"><i class="bi bi-trash3-fill"></i> Supprimer</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

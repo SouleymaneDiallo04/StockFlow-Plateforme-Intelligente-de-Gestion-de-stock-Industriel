@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}StockFlow{% endblock %} — Intelligence</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  {% load static %}
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+{% load static %}
+
+{% if messages %}
+<script id="django-messages" type="application/json">
+[{% for msg in messages %}{"message":"{{ msg|escapejs }}","tags":"{{ msg.tags }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
+{% endif %}
+
+<div class="sf-toast-container" id="sf-toast-container"></div>
+<div class="sf-overlay" id="sf-overlay"></div>
+
+<div class="sf-layout">
+
+  {% if user.is_authenticated %}
+  <aside class="sf-sidebar">
+    <div class="sf-sidebar-brand">
+      <div class="brand-icon">📦</div>
+      <span class="brand-name">StockFlow</span>
+    </div>
+
+    <nav class="sf-nav">
+      <div class="sf-nav-section">Opérationnel</div>
+      <a href="{% url 'dashboard' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-grid-1x2-fill"></i></span>Dashboard
+      </a>
+      <a href="{% url 'product_list' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-box-seam"></i></span>Produits
+      </a>
+      {% if is_superadmin %}
+      <a href="{% url 'category_list' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-tags-fill"></i></span>Catégories
+      </a>
+      {% endif %}
+
+      <div class="sf-nav-section">Intelligence IA</div>
+      <a href="{% url 'ml_dashboard' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-cpu-fill"></i></span>Vue d'ensemble
+      </a>
+      <a href="{% url 'ml_forecast' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-graph-up-arrow"></i></span>Prévision
+      </a>
+      <a href="{% url 'ml_optimize' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-bullseye"></i></span>Optimisation
+      </a>
+      <a href="{% url 'ml_spc' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-activity"></i></span>Contrôle SPC
+      </a>
+      <a href="{% url 'ml_abc' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-bar-chart-steps"></i></span>Analyse ABC-XYZ
+      </a>
+
+      {% if can_manage_products %}
+      <div class="sf-nav-section">Actions</div>
+      <a href="{% url 'product_create' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-plus-circle-fill"></i></span>Nouveau produit
+      </a>
+      {% endif %}
+      {% if is_superadmin %}
+      <a href="{% url 'category_create' %}" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-folder-plus"></i></span>Nouvelle catégorie
+      </a>
+      {% endif %}
+
+      {% if can_manage_products %}
+      <div class="sf-nav-section">Export</div>
+      <a href="{% url 'product_list' %}?export=csv" class="sf-nav-link">
+        <span class="nav-icon"><i class="bi bi-file-earmark-arrow-down"></i></span>Exporter CSV
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="sf-sidebar-footer">
+      <div class="sf-user-card">
+        <div class="sf-user-avatar">{{ user.username|slice:":2"|upper }}</div>
+        <div>
+          <div class="sf-user-name">{{ user.username }}</div>
+          <div class="sf-user-role">
+            {% if is_superadmin %}superadmin{% elif can_manage_products %}admin{% else %}viewer{% endif %}
+          </div>
+        </div>
+      </div>
+      <a href="{% url 'logout' %}" class="sf-nav-link mt-2" style="color:var(--sf-danger)">
+        <span class="nav-icon"><i class="bi bi-box-arrow-right"></i></span>Déconnexion
+      </a>
+    </div>
+  </aside>
+  {% endif %}
+
+  <div class="sf-main">
+    {% if user.is_authenticated %}
+    <header class="sf-topbar">
+      <div class="d-flex align-items-center gap-3">
+        <button class="sf-menu-toggle"><i class="bi bi-list"></i></button>
+        <span class="sf-topbar-title">{% block page_title %}StockFlow Intelligence{% endblock %}</span>
+      </div>
+      <div class="sf-topbar-actions">
+        <button class="sf-theme-toggle" title="Thème">
+          <span class="sf-theme-icon">☀️</span>
+        </button>
+        {% if can_manage_products %}
+        <a href="{% url 'product_create' %}" class="sf-btn sf-btn-primary sf-btn-sm d-none d-md-inline-flex">
+          <i class="bi bi-plus-lg"></i> Nouveau produit
+        </a>
+        {% endif %}
+      </div>
+    </header>
+    {% endif %}
+
+    <main class="sf-content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer style="padding:14px 28px;border-top:1px solid var(--sf-border);font-size:.72rem;color:var(--sf-text-muted);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span>© 2026 <strong>StockFlow Intelligence</strong> — ENSAM Meknès · IA & Data Science</span>
+      <span style="font-family:var(--sf-mono)">Django 5 · Celery · Prophet · LightGBM · TFT</span>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

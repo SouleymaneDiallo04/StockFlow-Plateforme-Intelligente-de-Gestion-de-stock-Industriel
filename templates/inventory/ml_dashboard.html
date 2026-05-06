@@ -1,0 +1,255 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+{% block title %}Intelligence{% endblock %}
+{% block page_title %}Intelligence IA{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h1 style="font-size:1.4rem;font-weight:800;margin:0">Intelligence IA</h1>
+    <p style="color:var(--sf-text-muted);font-size:.8rem;margin:0">
+      {{ catalog_size }} SKUs analysables · Moteur ML actif
+    </p>
+  </div>
+  {% if is_superadmin %}
+  <form method="post" action="{% url 'ml_generate' %}">
+    {% csrf_token %}
+    <input type="hidden" name="n_days" value="730">
+    <button type="submit" class="sf-btn sf-btn-accent">
+      <i class="bi bi-database-fill-gear"></i> Générer dataset
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- Navigation modules ML -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <a href="{% url 'ml_forecast' %}" class="text-decoration-none">
+      <div class="sf-card sf-fade-in" style="border-color:rgba(59,130,246,.3);cursor:pointer;transition:all .2s"
+           onmouseover="this.style.borderColor='var(--sf-info)';this.style.transform='translateY(-3px)'"
+           onmouseout="this.style.borderColor='rgba(59,130,246,.3)';this.style.transform='translateY(0)'">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="sf-stat-icon blue" style="width:48px;height:48px;font-size:1.3rem">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+          <div>
+            <div style="font-size:.95rem;font-weight:700;color:var(--sf-text)">Prévision de demande</div>
+            <div style="font-size:.72rem;color:var(--sf-text-muted)">SARIMAX · Prophet · LightGBM · TFT</div>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--sf-text-muted);margin:0">
+          Prévisions multi-modèles avec intervalles de confiance calibrés
+          par conformal prediction. Évaluation rigoureuse par MASE et Winkler Score.
+        </p>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-3">
+    <a href="{% url 'ml_optimize' %}" class="text-decoration-none">
+      <div class="sf-card sf-fade-in" style="animation-delay:.06s;border-color:rgba(16,185,129,.3);cursor:pointer;transition:all .2s"
+           onmouseover="this.style.borderColor='var(--sf-primary)';this.style.transform='translateY(-3px)'"
+           onmouseout="this.style.borderColor='rgba(16,185,129,.3)';this.style.transform='translateY(0)'">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="sf-stat-icon green" style="width:48px;height:48px;font-size:1.3rem">
+            <i class="bi bi-bullseye"></i>
+          </div>
+          <div>
+            <div style="font-size:.95rem;font-weight:700;color:var(--sf-text)">Optimisation des stocks</div>
+            <div style="font-size:.72rem;color:var(--sf-text-muted)">Monte Carlo · Pareto · Lean Six Sigma</div>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--sf-text-muted);margin:0">
+          Simulation de 10 000 scénarios. Frontière Pareto coût/risque.
+          Calcul du muda de surstock et réduction du capital immobilisé.
+        </p>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-3">
+    <a href="{% url 'ml_abc' %}" class="text-decoration-none">
+      <div class="sf-card sf-fade-in" style="animation-delay:.18s;border-color:rgba(139,92,246,.3);cursor:pointer;transition:all .2s"
+           onmouseover="this.style.borderColor='#8b5cf6';this.style.transform='translateY(-3px)'"
+           onmouseout="this.style.borderColor='rgba(139,92,246,.3)';this.style.transform='translateY(0)'">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="sf-stat-icon" style="background:rgba(139,92,246,.15);color:#8b5cf6;width:48px;height:48px;font-size:1.3rem">
+            <i class="bi bi-bar-chart-steps"></i>
+          </div>
+          <div>
+            <div style="font-size:.95rem;font-weight:700;color:var(--sf-text)">Analyse ABC-XYZ</div>
+            <div style="font-size:.72rem;color:var(--sf-text-muted)">Pareto · Classification · Recommandations</div>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--sf-text-muted);margin:0">
+          Classification ABC par valeur consommée et XYZ par variabilité.
+          Recommandations de politique de gestion par classe.
+        </p>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-3">
+    <a href="{% url 'ml_spc' %}" class="text-decoration-none">
+      <div class="sf-card sf-fade-in" style="animation-delay:.12s;border-color:rgba(245,158,11,.3);cursor:pointer;transition:all .2s"
+           onmouseover="this.style.borderColor='var(--sf-accent)';this.style.transform='translateY(-3px)'"
+           onmouseout="this.style.borderColor='rgba(245,158,11,.3)';this.style.transform='translateY(0)'">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="sf-stat-icon amber" style="width:48px;height:48px;font-size:1.3rem">
+            <i class="bi bi-activity"></i>
+          </div>
+          <div>
+            <div style="font-size:.95rem;font-weight:700;color:var(--sf-text)">Contrôle SPC</div>
+            <div style="font-size:.72rem;color:var(--sf-text-muted)">I-MR · CUSUM · EWMA · 8 règles WE</div>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--sf-text-muted);margin:0">
+          Cartes de contrôle statistique sur la demande et les ruptures.
+          Détection des 8 règles Western Electric avec interprétation métier.
+        </p>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- KPIs agrégés -->
+<div class="sf-stats-grid mb-4">
+  <div class="sf-stat-card sf-fade-in" style="animation-delay:.18s">
+    <div class="sf-stat-icon blue"><i class="bi bi-cpu-fill"></i></div>
+    <div>
+      <div class="sf-stat-value sf-counter">{{ catalog_size }}</div>
+      <div class="sf-stat-label">SKUs analysables</div>
+    </div>
+  </div>
+  <div class="sf-stat-card sf-fade-in" style="animation-delay:.22s">
+    <div class="sf-stat-icon green"><i class="bi bi-shield-check"></i></div>
+    <div>
+      <div class="sf-stat-value">{% if avg_service %}{{ avg_service }}%{% else %}—{% endif %}</div>
+      <div class="sf-stat-label">Taux de service moyen</div>
+    </div>
+  </div>
+  <div class="sf-stat-card sf-fade-in" style="animation-delay:.26s">
+    <div class="sf-stat-icon red"><i class="bi bi-exclamation-octagon-fill"></i></div>
+    <div>
+      <div class="sf-stat-value sf-counter">{{ out_of_control }}</div>
+      <div class="sf-stat-label">SKUs hors contrôle SPC</div>
+    </div>
+  </div>
+  <div class="sf-stat-card sf-fade-in" style="animation-delay:.30s">
+    <div class="sf-stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
+    <div>
+      <div class="sf-stat-value sf-counter">{{ pending_jobs }}</div>
+      <div class="sf-stat-label">Analyses en cours</div>
+    </div>
+  </div>
+</div>
+
+<!-- Jobs récents + Profils SKU -->
+<div class="row g-4">
+  <!-- Tâches récentes -->
+  <div class="col-lg-5">
+    <div class="sf-card sf-fade-in" style="animation-delay:.34s">
+      <div class="sf-card-header">
+        <span class="sf-card-title"><i class="bi bi-clock-history" style="color:var(--sf-info)"></i> Analyses récentes</span>
+      </div>
+      {% if recent_jobs %}
+      <table class="sf-table">
+        <thead>
+          <tr><th>Type</th><th>SKU</th><th>Statut</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          {% for job in recent_jobs %}
+          <tr>
+            <td>
+              <span style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--sf-text-muted)">
+                {{ job.get_job_type_display }}
+              </span>
+            </td>
+            <td style="font-family:var(--sf-mono);font-size:.78rem">{{ job.sku_id|default:"—" }}</td>
+            <td>
+              <span class="sf-badge {% if job.status == 'success' %}sf-badge-ok{% elif job.status == 'failed' %}sf-badge-out{% elif job.status == 'running' %}sf-badge-low{% else %}sf-badge-inactive{% endif %}">
+                {{ job.get_status_display }}
+              </span>
+            </td>
+            <td style="font-size:.75rem;color:var(--sf-text-muted)">{{ job.updated_at|date:"d/m H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="sf-empty" style="padding:24px 0">
+        <div class="sf-empty-icon" style="font-size:2rem">🤖</div>
+        <div class="sf-empty-title">Aucune analyse effectuée</div>
+        <div class="sf-empty-text">Lancez une prévision ou une optimisation.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Profils SKU -->
+  <div class="col-lg-7">
+    <div class="sf-card sf-fade-in" style="animation-delay:.38s">
+      <div class="sf-card-header">
+        <span class="sf-card-title"><i class="bi bi-grid-3x3-gap-fill" style="color:var(--sf-primary)"></i> Profils ML des SKUs</span>
+      </div>
+      {% if sku_profiles %}
+      <div style="overflow-x:auto">
+        <table class="sf-table">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Meilleur modèle</th>
+              <th>MASE</th>
+              <th>Taux service</th>
+              <th>Capital −%</th>
+              <th>SPC</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in sku_profiles %}
+            <tr>
+              <td style="font-family:var(--sf-mono);font-size:.78rem;font-weight:600">{{ p.sku_id }}</td>
+              <td>
+                {% if p.best_forecast_model %}
+                <span class="sf-badge sf-badge-active">{{ p.best_forecast_model }}</span>
+                {% else %}<span style="color:var(--sf-text-muted)">—</span>{% endif %}
+              </td>
+              <td style="font-size:.82rem">
+                {% if p.forecast_mase %}
+                <span style="color:{% if p.forecast_mase < 1 %}var(--sf-primary){% else %}var(--sf-danger){% endif %};font-weight:600">
+                  {{ p.forecast_mase|floatformat:3 }}
+                </span>
+                {% else %}—{% endif %}
+              </td>
+              <td style="font-size:.82rem">
+                {% if p.service_level %}{{ p.service_level|floatformat:1 }}%{% else %}—{% endif %}
+              </td>
+              <td style="font-size:.82rem;color:var(--sf-primary)">
+                {% if p.capital_reduction %}−{{ p.capital_reduction|floatformat:1 }}%{% else %}—{% endif %}
+              </td>
+              <td>
+                {% if p.spc_status == 'out_of_control' %}
+                  <span class="sf-badge sf-badge-out">Hors contrôle</span>
+                {% elif p.spc_status == 'warning' %}
+                  <span class="sf-badge sf-badge-low">Alerte</span>
+                {% elif p.spc_status == 'in_control' %}
+                  <span class="sf-badge sf-badge-ok">OK</span>
+                {% else %}
+                  <span style="color:var(--sf-text-muted)">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="sf-empty" style="padding:24px 0">
+        <div class="sf-empty-text">Aucun profil ML calculé. Lancez des analyses pour les voir apparaître ici.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

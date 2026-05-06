@@ -1,0 +1,244 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+{% block title %}Contrôle SPC{% endblock %}
+{% block page_title %}Contrôle Statistique des Processus{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-3">
+    <div class="sf-card sf-fade-in" style="position:sticky;top:80px">
+      <div class="sf-card-header">
+        <span class="sf-card-title"><i class="bi bi-activity" style="color:var(--sf-accent)"></i> Paramètres</span>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">SKU à analyser</label>
+        <select id="sku-select" class="sf-input form-select">
+          <option value="">Sélectionner...</option>
+          {% for sku_id, name, category in catalog %}
+          <option value="{{ sku_id }}">{{ sku_id }} — {{ name|truncatechars:28 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button id="run-spc-btn" class="sf-btn sf-btn-accent w-100" disabled>
+        <i class="bi bi-play-fill"></i> Générer rapport SPC
+      </button>
+
+      <div id="job-status-panel" class="mt-3" style="display:none">
+        <div class="d-flex align-items-center gap-2" style="font-size:.82rem;color:var(--sf-text-muted)">
+          <div class="sf-spinner"></div>
+          <span id="job-status-text">Calcul...</span>
+        </div>
+        <div class="mt-2" style="height:4px;background:var(--sf-border);border-radius:999px;overflow:hidden">
+          <div id="job-progress" style="height:100%;width:0%;background:var(--sf-accent);border-radius:999px;transition:width .5s"></div>
+        </div>
+      </div>
+
+      <!-- Légende WE statique -->
+      <div class="mt-4" style="border-top:1px solid var(--sf-border);padding-top:16px">
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sf-text-muted);margin-bottom:10px">Règles Western Electric</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="d-flex gap-2" style="font-size:.7rem"><span style="min-width:22px;font-family:var(--sf-mono);font-weight:700;color:var(--sf-danger)">R1</span><span style="color:var(--sf-text-muted)">1 point au-delà de ±3σ</span></div>
+          <div class="d-flex gap-2" style="font-size:.7rem"><span style="min-width:22px;font-family:var(--sf-mono);font-weight:700;color:var(--sf-danger)">R2</span><span style="color:var(--sf-text-muted)">9 pts consécutifs même côté</span></div>
+          <div class="d-flex gap-2" style="font-size:.7rem"><span style="min-width:22px;font-family:var(--sf-mono);font-weight:700;color:var(--sf-danger)">R3</span><span style="color:var(--sf-text-muted)">6 pts en tendance monotone</span></div>
+          <div class="d-flex gap-2" style="font-size:.7rem"><span style="min-width:22px;font-family:var(--sf-mono);font-weight:700;color:var(--sf-accent)">R4</span><span style="color:var(--sf-text-muted)">14 pts alternant haut/bas</span></div>
+          <div class="d-flex gap-2" style="font-size:.7rem"><span style="min-width:22px;font-family:var(--sf-mono);font-weight:700;color:var(--sf-accent)">R5</span><span style="color:var(--sf-text-muted)">2 des 3 pts en Zone A</span></div>
+          <div class="d-flex gap-2" style="font-size:.7rem"><span style="min-width:22px;font-family:var(--sf-mono);font-weight:700;color:var(--sf-accent)">R6</span><span style="color:var(--sf-text-muted)">4 des 5 pts en Zone B</span></div>
+          <div class="d-flex gap-2" style="font-size:.7rem"><span style="min-width:22px;font-family:var(--sf-mono);font-weight:700;color:var(--sf-info)">R7</span><span style="color:var(--sf-text-muted)">15 pts consécutifs Zone C</span></div>
+          <div class="d-flex gap-2" style="font-size:.7rem"><span style="min-width:22px;font-family:var(--sf-mono);font-weight:700;color:var(--sf-info)">R8</span><span style="color:var(--sf-text-muted)">8 pts consécutifs hors Zone C</span></div>
+        </div>
+        <div class="mt-3 d-flex flex-column gap-1">
+          <div class="d-flex align-items-center gap-2"><span class="sf-badge sf-badge-out" style="font-size:.6rem">Critique</span><span style="font-size:.68rem;color:var(--sf-text-muted)">R1, R2, R3</span></div>
+          <div class="d-flex align-items-center gap-2"><span class="sf-badge sf-badge-low" style="font-size:.6rem">Alerte</span><span style="font-size:.68rem;color:var(--sf-text-muted)">R4, R5, R6</span></div>
+          <div class="d-flex align-items-center gap-2"><span class="sf-badge" style="font-size:.6rem;background:rgba(59,130,246,.15);color:#60a5fa">Info</span><span style="font-size:.68rem;color:var(--sf-text-muted)">R7, R8</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-9">
+    {% if alert_profiles %}
+    <div class="sf-card mb-4 sf-fade-in" style="border-color:rgba(239,68,68,.3)">
+      <div class="sf-card-header">
+        <span class="sf-card-title"><i class="bi bi-bell-fill" style="color:var(--sf-danger)"></i> SKUs nécessitant une attention</span>
+      </div>
+      <table class="sf-table">
+        <thead><tr><th>SKU</th><th>Statut</th><th>Signaux critiques</th><th>Analysé le</th><th></th></tr></thead>
+        <tbody>
+          {% for p in alert_profiles %}
+          <tr>
+            <td style="font-family:var(--sf-mono);font-size:.82rem;font-weight:700">{{ p.sku_id }}</td>
+            <td><span class="sf-badge {% if p.spc_status == 'out_of_control' %}sf-badge-out{% else %}sf-badge-low{% endif %}">{% if p.spc_status == 'out_of_control' %}Hors contrôle{% else %}Alerte{% endif %}</span></td>
+            <td style="font-size:.82rem;color:var(--sf-danger);font-weight:600">{{ p.spc_n_critical }}</td>
+            <td style="font-size:.75rem;color:var(--sf-text-muted)">{{ p.updated_at|date:"d/m/Y" }}</td>
+            <td><button class="sf-btn sf-btn-ghost sf-btn-sm quick-analyze-btn" data-sku="{{ p.sku_id }}">Ré-analyser</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <div id="results-placeholder" class="sf-card" style="min-height:400px;display:flex;align-items:center;justify-content:center">
+      <div class="sf-empty">
+        <div class="sf-empty-icon">📊</div>
+        <div class="sf-empty-title">Aucune carte générée</div>
+        <div class="sf-empty-text">Sélectionnez un SKU pour générer le rapport SPC.</div>
+      </div>
+    </div>
+
+    <div id="results-container" style="display:none">
+      <div id="status-banner" class="sf-card mb-4 sf-fade-in"></div>
+      <div id="recommendations-card" class="sf-card mb-4 sf-fade-in" style="animation-delay:.06s;display:none">
+        <div class="sf-card-header"><span class="sf-card-title"><i class="bi bi-lightbulb-fill" style="color:var(--sf-accent)"></i> Recommandations</span></div>
+        <div id="recommendations-list"></div>
+      </div>
+      <div id="charts-container"></div>
+      <div id="signals-card" class="sf-card sf-fade-in mt-4" style="display:none">
+        <div class="sf-card-header"><span class="sf-card-title"><i class="bi bi-exclamation-triangle-fill" style="color:var(--sf-danger)"></i> Signaux hors contrôle</span></div>
+        <div id="signals-table"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
+
+document.getElementById('sku-select').addEventListener('change', function() {
+  document.getElementById('run-spc-btn').disabled = !this.value;
+});
+document.getElementById('run-spc-btn').addEventListener('click', () => runSPC());
+document.querySelectorAll('.quick-analyze-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('sku-select').value = btn.dataset.sku;
+    document.getElementById('run-spc-btn').disabled = false;
+    runSPC();
+  });
+});
+
+async function runSPC() {
+  const skuId = document.getElementById('sku-select').value;
+  if (!skuId) return;
+  const btn = document.getElementById('run-spc-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="sf-spinner" style="width:16px;height:16px"></div> Calcul...';
+  document.getElementById('job-status-panel').style.display = 'block';
+  document.getElementById('results-placeholder').style.display = 'none';
+  const resp = await fetch("{% url 'ml_spc_run' %}", {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':'{{ csrf_token }}'},
+    body: new URLSearchParams({sku_id:skuId}),
+  });
+  const data = await resp.json();
+  if (!data.job_id) { resetBtn(); return; }
+  pollJob(data.job_id);
+}
+
+function pollJob(jobId, p=0) {
+  const msgs = ['Chargement série...','Carte I-MR...','CUSUM...','EWMA...','Règles Western Electric...'];
+  document.getElementById('job-status-text').textContent = msgs[Math.min(Math.floor(p/20), msgs.length-1)];
+  document.getElementById('job-progress').style.width = Math.min(p+8,95)+'%';
+  setTimeout(async()=>{
+    const r=await fetch(`/api/ml/job/${jobId}/status/`); const d=await r.json();
+    if(d.status==='success'){document.getElementById('job-progress').style.width='100%';loadResult(jobId);}
+    else if(d.status==='failed'){document.getElementById('job-status-text').textContent='Erreur: '+d.error;resetBtn();}
+    else{pollJob(jobId,p+20);}
+  },2000);
+}
+
+async function loadResult(jobId) {
+  const r=await fetch(`/api/ml/job/${jobId}/result/`); const data=await r.json();
+  document.getElementById('results-placeholder').style.display='none';
+  document.getElementById('results-container').style.display='block';
+  renderStatusBanner(data.overall_status, data.sku_id);
+  renderRecommendations(data.recommendations||[]);
+  renderCharts(data.charts||[]);
+  renderSignals(data.critical_signals||[]);
+  resetBtn();
+}
+
+function renderStatusBanner(status, skuId) {
+  const cfg={
+    'in_control':{color:'var(--sf-primary)',icon:'bi-check-circle-fill',text:'Processus sous contrôle',sub:'Aucun signal critique.'},
+    'warning':{color:'var(--sf-accent)',icon:'bi-exclamation-triangle-fill',text:'Signaux d\'alerte détectés',sub:'Surveillance accrue recommandée.'},
+    'out_of_control':{color:'var(--sf-danger)',icon:'bi-x-octagon-fill',text:'Processus hors contrôle',sub:'Identifier et éliminer les causes assignables.'},
+  };
+  const c=cfg[status]||cfg['in_control'];
+  const el=document.getElementById('status-banner');
+  el.innerHTML=`<div class="d-flex align-items-center gap-3"><div style="font-size:2.5rem;color:${c.color}"><i class="bi ${c.icon}"></i></div><div><div style="font-size:1rem;font-weight:700;color:${c.color}">${c.text}</div><div style="font-size:.82rem;color:var(--sf-text-muted)">${c.sub} — SKU: <strong>${skuId}</strong></div></div></div>`;
+  el.style.borderColor=c.color+'55';
+}
+
+function renderRecommendations(recs) {
+  if(!recs.length)return;
+  document.getElementById('recommendations-card').style.display='block';
+  document.getElementById('recommendations-list').innerHTML=recs.map((r,i)=>`<div style="display:flex;gap:12px;padding:10px 0;${i<recs.length-1?'border-bottom:1px solid var(--sf-border)':''}"><span style="min-width:20px;font-weight:700;color:var(--sf-accent)">${i+1}.</span><p style="margin:0;font-size:.85rem;color:var(--sf-text-muted);line-height:1.6">${r}</p></div>`).join('');
+}
+
+function renderCharts(charts) {
+  const container=document.getElementById('charts-container'); container.innerHTML='';
+  charts.forEach((chart,idx)=>{
+    const divId=`chart-${idx}`;
+    const statusColor=chart.in_control?'var(--sf-primary)':'var(--sf-danger)';
+    const wrapper=document.createElement('div');
+    wrapper.className='sf-card mb-4 sf-fade-in';
+    wrapper.style.animationDelay=(idx*0.08)+'s';
+    wrapper.innerHTML=`<div class="sf-card-header"><span class="sf-card-title"><i class="bi bi-activity" style="color:${statusColor}"></i> ${chart.chart_type} — ${chart.metric_name}</span><span class="sf-badge ${chart.in_control?'sf-badge-ok':'sf-badge-out'}">${chart.in_control?'Sous contrôle':chart.n_signals+' signal(s)'}</span></div><div id="${divId}" style="height:300px"></div>`;
+    container.appendChild(wrapper);
+    plotControlChart(divId, chart);
+  });
+}
+
+function plotControlChart(divId, chart) {
+  const grid=isDark()?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
+  const text=isDark()?'#8892a4':'#64748b';
+  const lim=chart.limits; const n=chart.dates.length;
+  const outIdx=new Set((chart.signals||[]).filter(s=>s.severity==='critical').map(s=>s.point_index));
+  const warnIdx=new Set((chart.signals||[]).filter(s=>s.severity==='warning').map(s=>s.point_index));
+  const ptColors=chart.values.map((_,i)=>outIdx.has(i)?'#ef4444':warnIdx.has(i)?'#f59e0b':'#10b981');
+  const ptSizes=chart.values.map((_,i)=>(outIdx.has(i)||warnIdx.has(i))?9:4);
+  const shapes=[
+    {type:'line',x0:chart.dates[0],x1:chart.dates[n-1],y0:lim.ucl,y1:lim.ucl,line:{color:'#ef4444',width:1.5,dash:'dash'}},
+    {type:'line',x0:chart.dates[0],x1:chart.dates[n-1],y0:lim.lcl,y1:lim.lcl,line:{color:'#ef4444',width:1.5,dash:'dash'}},
+    {type:'line',x0:chart.dates[0],x1:chart.dates[n-1],y0:lim.cl, y1:lim.cl, line:{color:'#94a3b8',width:1,dash:'dot'}},
+    {type:'rect',x0:chart.dates[0],x1:chart.dates[n-1],y0:lim.uwa,y1:lim.ucl,fillcolor:'rgba(239,68,68,.04)',line:{width:0}},
+    {type:'rect',x0:chart.dates[0],x1:chart.dates[n-1],y0:lim.lcl,y1:lim.lwa,fillcolor:'rgba(239,68,68,.04)',line:{width:0}},
+    {type:'rect',x0:chart.dates[0],x1:chart.dates[n-1],y0:lim.uwb,y1:lim.uwa,fillcolor:'rgba(245,158,11,.04)',line:{width:0}},
+    {type:'rect',x0:chart.dates[0],x1:chart.dates[n-1],y0:lim.lwa,y1:lim.lwb,fillcolor:'rgba(245,158,11,.04)',line:{width:0}},
+  ];
+  Plotly.newPlot(divId,[{x:chart.dates,y:chart.values,mode:'lines+markers',name:chart.metric_name,line:{color:'#64748b',width:1.2},marker:{color:ptColors,size:ptSizes,symbol:chart.values.map((_,i)=>outIdx.has(i)?'x':'circle')}}],{
+    paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{family:"'Sora',sans-serif",color:text,size:10},
+    xaxis:{gridcolor:grid,tickfont:{size:9}},yaxis:{gridcolor:grid,tickfont:{size:9}},shapes,
+    annotations:[
+      {x:chart.dates[n-1],y:lim.ucl,text:'UCL',xanchor:'left',showarrow:false,font:{color:'#ef4444',size:9}},
+      {x:chart.dates[n-1],y:lim.lcl,text:'LCL',xanchor:'left',showarrow:false,font:{color:'#ef4444',size:9}},
+      {x:chart.dates[n-1],y:lim.cl, text:'CL', xanchor:'left',showarrow:false,font:{color:'#94a3b8',size:9}},
+    ],
+    margin:{l:50,r:55,t:10,b:40},showlegend:false,
+  },{responsive:true});
+}
+
+function renderSignals(signals) {
+  if(!signals.length)return;
+  document.getElementById('signals-card').style.display='block';
+  let html=`<table class="sf-table"><thead><tr><th>Règle</th><th>Date</th><th>Valeur</th><th>Description</th></tr></thead><tbody>`;
+  signals.forEach(s=>{html+=`<tr><td><span class="sf-badge sf-badge-out">${s.rule}</span></td><td style="font-family:var(--sf-mono);font-size:.78rem">${s.date}</td><td style="font-size:.82rem;font-weight:600">${s.value}</td><td style="font-size:.78rem;color:var(--sf-text-muted)">${s.description}</td></tr>`;});
+  html+='</tbody></table>';
+  document.getElementById('signals-table').innerHTML=html;
+}
+
+function resetBtn(){
+  const btn=document.getElementById('run-spc-btn');
+  btn.disabled=false;
+  btn.innerHTML='<i class="bi bi-play-fill"></i> Générer rapport SPC';
+}
+</script>
+{% endblock %}

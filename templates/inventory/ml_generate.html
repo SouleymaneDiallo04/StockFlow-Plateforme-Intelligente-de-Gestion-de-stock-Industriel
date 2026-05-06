@@ -1,0 +1,44 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Générer Dataset{% endblock %}
+{% block page_title %}Génération du Dataset ML{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="sf-card sf-fade-in">
+      <div class="sf-card-header">
+        <span class="sf-card-title">
+          <i class="bi bi-database-fill-gear" style="color:var(--sf-accent)"></i>
+          Générer le dataset synthétique
+        </span>
+      </div>
+
+      <div style="font-size:.85rem;color:var(--sf-text-muted);margin-bottom:20px;line-height:1.7">
+        Génère un dataset industriel synthétique de <strong style="color:var(--sf-text)">50 SKUs</strong>
+        répartis sur 4 catégories (composants, matières premières, consommables, équipements).
+        Les séries reproduisent les propriétés statistiques documentées des demandes industrielles :
+        saisonnalité multiple, tendances, intermittence, événements exogènes, bruit multiplicatif.
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label">Horizon temporel (jours)</label>
+          <select name="n_days" class="sf-input form-select">
+            <option value="365">365 jours (1 an)</option>
+            <option value="730" selected>730 jours (2 ans) — recommandé</option>
+            <option value="1095">1095 jours (3 ans)</option>
+          </select>
+          <div style="font-size:.72rem;color:var(--sf-text-muted);margin-top:4px">
+            2 ans minimum recommandé pour capturer la saisonnalité annuelle.
+          </div>
+        </div>
+
+        <button type="submit" class="sf-btn sf-btn-accent w-100">
+          <i class="bi bi-play-fill"></i> Lancer la génération
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

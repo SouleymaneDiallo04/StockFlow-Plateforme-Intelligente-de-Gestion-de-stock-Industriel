@@ -1,0 +1,35 @@
+{% extends 'inventory/base.html' %}
+{% block title %}{{ action }}{% endblock %}
+{% block page_title %}{{ action }}{% endblock %}
+{% block content %}
+<div class="sf-pills mb-4">
+  <a href="{% url 'category_list' %}" class="sf-pill">Catégories</a>
+  <span style="color:var(--sf-text-muted)">›</span>
+  <span class="sf-pill active">{{ action }}</span>
+</div>
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="sf-card sf-fade-in">
+      <div class="sf-card-header">
+        <span class="sf-card-title"><i class="bi bi-folder-fill" style="color:var(--sf-accent)"></i> {{ action }}</span>
+      </div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Nom de la catégorie *</label>
+          {{ form.name }}
+          {% for e in form.name.errors %}<div style="font-size:.75rem;color:#f87171;margin-top:4px">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Description</label>
+          {{ form.description }}
+        </div>
+        <div class="d-flex gap-3">
+          <button type="submit" class="sf-btn sf-btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+          <a href="{% url 'category_list' %}" class="sf-btn sf-btn-ghost">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

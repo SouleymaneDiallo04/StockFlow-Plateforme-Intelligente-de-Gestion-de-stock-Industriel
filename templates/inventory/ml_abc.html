@@ -1,0 +1,271 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+{% block title %}Analyse ABC-XYZ{% endblock %}
+{% block page_title %}Analyse ABC-XYZ du portefeuille{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h1 style="font-size:1.4rem;font-weight:800;margin:0">Analyse ABC-XYZ</h1>
+    <p style="color:var(--sf-text-muted);font-size:.8rem;margin:0">Loi de Pareto · Coefficient de variation · Recommandations de politique</p>
+  </div>
+  <button id="run-abc-btn" class="sf-btn sf-btn-primary">
+    <i class="bi bi-bar-chart-steps"></i> Lancer l'analyse
+  </button>
+</div>
+
+<!-- Explication -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="sf-card" style="border-color:rgba(239,68,68,.3)">
+      <div style="font-size:.75rem;font-weight:700;color:var(--sf-danger);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Classe A — 80% de la valeur</div>
+      <p style="font-size:.8rem;color:var(--sf-text-muted);margin:0">SKUs stratégiques. Gestion prioritaire. Approvisionnement précis. Stock minimal (flux tiré).</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="sf-card" style="border-color:rgba(245,158,11,.3)">
+      <div style="font-size:.75rem;font-weight:700;color:var(--sf-accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Classe B — 15% de la valeur</div>
+      <p style="font-size:.8rem;color:var(--sf-text-muted);margin:0">SKUs intermédiaires. Gestion standard. EOQ applicable. Révision périodique des paramètres.</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="sf-card" style="border-color:rgba(100,116,139,.3)">
+      <div style="font-size:.75rem;font-weight:700;color:var(--sf-text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Classe C — 5% de la valeur</div>
+      <p style="font-size:.8rem;color:var(--sf-text-muted);margin:0">SKUs à faible valeur. Commandes groupées. Évaluer l'élimination ou le make-on-order.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Job status -->
+<div id="job-status-panel" class="sf-card mb-4" style="display:none">
+  <div class="d-flex align-items-center gap-3">
+    <div class="sf-spinner"></div>
+    <span id="job-status-text" style="font-size:.85rem;color:var(--sf-text-muted)">Analyse en cours...</span>
+  </div>
+  <div class="mt-2" style="height:4px;background:var(--sf-border);border-radius:999px;overflow:hidden">
+    <div id="job-progress" style="height:100%;width:0%;background:var(--sf-primary);border-radius:999px;transition:width .5s"></div>
+  </div>
+</div>
+
+<!-- Placeholder -->
+<div id="results-placeholder" class="sf-card" style="min-height:300px;display:flex;align-items:center;justify-content:center">
+  <div class="sf-empty">
+    <div class="sf-empty-icon">📊</div>
+    <div class="sf-empty-title">Analyse non encore effectuée</div>
+    <div class="sf-empty-text">Cliquez sur "Lancer l'analyse" pour classifier les 50 SKUs du catalogue.</div>
+  </div>
+</div>
+
+<div id="results-container" style="display:none">
+  <!-- KPIs -->
+  <div id="abc-kpis" class="sf-stats-grid mb-4"></div>
+
+  <!-- Courbe Pareto + Matrice -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-7">
+      <div class="sf-card sf-fade-in">
+        <div class="sf-card-header">
+          <span class="sf-card-title"><i class="bi bi-graph-up-arrow" style="color:var(--sf-primary)"></i> Courbe de Pareto</span>
+        </div>
+        <div id="pareto-chart" style="height:360px"></div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="sf-card sf-fade-in" style="animation-delay:.08s">
+        <div class="sf-card-header">
+          <span class="sf-card-title"><i class="bi bi-grid-3x3" style="color:var(--sf-accent)"></i> Matrice ABC-XYZ</span>
+        </div>
+        <div id="matrix-chart" style="height:360px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau de classement -->
+  <div class="sf-card sf-fade-in" style="animation-delay:.16s">
+    <div class="sf-card-header">
+      <span class="sf-card-title"><i class="bi bi-table" style="color:var(--sf-info)"></i> Classement complet</span>
+      <div class="d-flex gap-2">
+        <button class="sf-btn sf-btn-ghost sf-btn-sm" onclick="filterTable('all')">Tous</button>
+        <button class="sf-btn sf-btn-ghost sf-btn-sm" onclick="filterTable('A')">Classe A</button>
+        <button class="sf-btn sf-btn-ghost sf-btn-sm" onclick="filterTable('B')">Classe B</button>
+        <button class="sf-btn sf-btn-ghost sf-btn-sm" onclick="filterTable('C')">Classe C</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="sf-table" id="abc-table">
+        <thead>
+          <tr>
+            <th>Rang</th><th>SKU</th><th>ABC</th><th>XYZ</th><th>Matrice</th>
+            <th>Valeur annuelle (DH)</th><th>Part (%)</th><th>Cumulé (%)</th><th>CV</th><th>Recommandation</th>
+          </tr>
+        </thead>
+        <tbody id="abc-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
+let allRows = [];
+
+document.getElementById('run-abc-btn').addEventListener('click', async function() {
+  this.disabled = true;
+  this.innerHTML = '<div class="sf-spinner" style="width:16px;height:16px"></div> Analyse...';
+  document.getElementById('job-status-panel').style.display = 'block';
+  document.getElementById('results-placeholder').style.display = 'none';
+
+  const resp = await fetch("{% url 'ml_abc_run' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}'},
+    body: '',
+  });
+  const data = await resp.json();
+  if (!data.job_id) { resetBtn(); return; }
+  pollJob(data.job_id);
+});
+
+function pollJob(jobId, p=0) {
+  const msgs = ['Génération du catalogue...', 'Calcul des valeurs consommées...', 'Classification ABC...', 'Classification XYZ...', 'Construction de la matrice...'];
+  document.getElementById('job-status-text').textContent = msgs[Math.min(Math.floor(p/20), msgs.length-1)];
+  document.getElementById('job-progress').style.width = Math.min(p+10, 95)+'%';
+  setTimeout(async () => {
+    const r = await fetch(`/api/ml/job/${jobId}/status/`);
+    const d = await r.json();
+    if (d.status === 'success') {
+      document.getElementById('job-progress').style.width = '100%';
+      loadResult(jobId);
+    } else if (d.status === 'failed') {
+      document.getElementById('job-status-text').textContent = 'Erreur: ' + d.error;
+      resetBtn();
+    } else {
+      pollJob(jobId, p+20);
+    }
+  }, 1500);
+}
+
+async function loadResult(jobId) {
+  const r = await fetch(`/api/ml/job/${jobId}/result/`);
+  const data = await r.json();
+  document.getElementById('results-placeholder').style.display = 'none';
+  document.getElementById('results-container').style.display = 'block';
+  renderKPIs(data.summary || {});
+  renderParetoChart(data.pareto || {});
+  renderMatrixChart(data.rankings || []);
+  renderTable(data.rankings || []);
+  resetBtn();
+}
+
+function renderKPIs(summary) {
+  const colors = {A:'red', B:'amber', C:'blue'};
+  const icons  = {A:'bi-star-fill', B:'bi-circle-half', C:'bi-circle'};
+  document.getElementById('abc-kpis').innerHTML = Object.entries(summary).map(([cls, d]) => `
+    <div class="sf-stat-card">
+      <div class="sf-stat-icon ${colors[cls]}"><i class="bi ${icons[cls]}"></i></div>
+      <div>
+        <div class="sf-stat-value">${d.n_skus} SKUs</div>
+        <div class="sf-stat-label">Classe ${cls} — ${d.value_pct}% de la valeur</div>
+        <div style="font-size:.68rem;color:var(--sf-text-muted);margin-top:2px">
+          X:${d.xyz_breakdown.X} Y:${d.xyz_breakdown.Y} Z:${d.xyz_breakdown.Z}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderParetoChart(pareto) {
+  if (!pareto.sku_ids) return;
+  const grid = isDark() ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const text = isDark() ? '#8892a4' : '#64748b';
+  const barColors = pareto.abc_classes.map(c => c==='A'?'#ef4444':c==='B'?'#f59e0b':'#94a3b8');
+
+  Plotly.newPlot('pareto-chart', [
+    {
+      x: pareto.sku_ids, y: pareto.values, type: 'bar',
+      name: 'Valeur annuelle', marker: {color: barColors},
+    },
+    {
+      x: pareto.sku_ids, y: pareto.cumulative_pct, type: 'scatter',
+      name: '% cumulé', yaxis: 'y2', mode: 'lines+markers',
+      line: {color: '#10b981', width: 2}, marker: {size: 4},
+    },
+  ], {
+    paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+    font: {family: "'Sora',sans-serif", color: text, size: 10},
+    xaxis: {gridcolor: grid, tickangle: -45, tickfont: {size: 8}},
+    yaxis: {gridcolor: grid, title: 'Valeur (DH)'},
+    yaxis2: {overlaying: 'y', side: 'right', range: [0, 105], title: 'Cumulé (%)', ticksuffix: '%'},
+    shapes: [
+      {type:'line', x0:0, x1:1, xref:'paper', y0:80, y1:80, yref:'y2', line:{color:'#ef4444', width:1, dash:'dash'}},
+      {type:'line', x0:0, x1:1, xref:'paper', y0:95, y1:95, yref:'y2', line:{color:'#f59e0b', width:1, dash:'dash'}},
+    ],
+    legend: {bgcolor: 'transparent', font: {size: 10}},
+    margin: {l:60, r:60, t:10, b:80},
+    barmode: 'group',
+  }, {responsive: true});
+}
+
+function renderMatrixChart(rankings) {
+  const matrixCount = {};
+  rankings.forEach(r => { matrixCount[r.matrix] = (matrixCount[r.matrix]||0)+1; });
+  const labels = ['AX','AY','AZ','BX','BY','BZ','CX','CY','CZ'];
+  const values = labels.map(l => matrixCount[l]||0);
+  const palette = {
+    AX:'#ef4444',AY:'#f97316',AZ:'#dc2626',
+    BX:'#f59e0b',BY:'#eab308',BZ:'#d97706',
+    CX:'#10b981',CY:'#06b6d4',CZ:'#94a3b8',
+  };
+  Plotly.newPlot('matrix-chart', [{
+    type: 'bar', x: labels, y: values,
+    marker: {color: labels.map(l => palette[l]||'#94a3b8')},
+    text: values.map(v => v > 0 ? v : ''), textposition: 'auto',
+  }], {
+    paper_bgcolor:'transparent', plot_bgcolor:'transparent',
+    font:{family:"'Sora',sans-serif", color: isDark()?'#8892a4':'#64748b', size:11},
+    xaxis:{gridcolor:'transparent', title:'Classe ABC-XYZ'},
+    yaxis:{gridcolor: isDark()?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)', title:'Nombre de SKUs'},
+    margin:{l:50,r:20,t:10,b:40},
+    showlegend:false,
+  }, {responsive:true});
+}
+
+function renderTable(rankings) {
+  allRows = rankings;
+  displayRows(rankings);
+}
+
+function displayRows(rows) {
+  const abcColors = {A:'sf-badge-out', B:'sf-badge-low', C:'sf-badge-inactive'};
+  const xyzColors = {X:'sf-badge-ok', Y:'sf-badge-low', Z:'sf-badge-inactive'};
+  document.getElementById('abc-tbody').innerHTML = rows.map((r, i) => `
+    <tr class="abc-row" data-abc="${r.abc}">
+      <td style="font-weight:700;color:var(--sf-text-muted)">${i+1}</td>
+      <td style="font-family:var(--sf-mono);font-size:.82rem;font-weight:700">${r.sku_id}</td>
+      <td><span class="sf-badge ${abcColors[r.abc]||''}">${r.abc}</span></td>
+      <td><span class="sf-badge ${xyzColors[r.xyz]||''}">${r.xyz}</span></td>
+      <td><span style="font-family:var(--sf-mono);font-size:.78rem;font-weight:700">${r.matrix}</span></td>
+      <td style="font-size:.82rem;font-weight:600;color:var(--sf-accent)">${r.annual_value.toLocaleString()} DH</td>
+      <td style="font-size:.82rem">${r.value_pct}%</td>
+      <td style="font-size:.82rem">${r.cumulative_pct}%</td>
+      <td style="font-family:var(--sf-mono);font-size:.78rem">${r.cv}</td>
+      <td style="font-size:.72rem;color:var(--sf-text-muted);max-width:300px">${r.recommendation}</td>
+    </tr>`).join('');
+}
+
+function filterTable(cls) {
+  if (cls === 'all') displayRows(allRows);
+  else displayRows(allRows.filter(r => r.abc === cls));
+}
+
+function resetBtn() {
+  const btn = document.getElementById('run-abc-btn');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-bar-chart-steps"></i> Relancer l\'analyse';
+}
+</script>
+{% endblock %}

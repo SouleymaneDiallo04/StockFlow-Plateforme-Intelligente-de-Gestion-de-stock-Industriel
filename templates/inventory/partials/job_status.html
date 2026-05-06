@@ -1,0 +1,18 @@
+{% if job.status == 'pending' or job.status == 'running' %}
+<div hx-get="{% url 'ml_job_status' job.job_id %}"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     class="d-flex align-items-center gap-2"
+     style="font-size:.82rem;color:var(--sf-text-muted)">
+  <div class="sf-spinner"></div>
+  {{ job.get_status_display }}...
+</div>
+{% elif job.status == 'success' %}
+<span class="sf-badge sf-badge-ok">
+  <i class="bi bi-check-lg"></i> Terminé
+</span>
+{% else %}
+<span class="sf-badge sf-badge-out" title="{{ job.error }}">
+  <i class="bi bi-x-lg"></i> Échoué
+</span>
+{% endif %}

@@ -1,0 +1,73 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+{% block title %}Produits{% endblock %}
+{% block page_title %}Catalogue produits{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h1 style="font-size:1.4rem;font-weight:800;margin:0">Catalogue produits</h1>
+    <p style="color:var(--sf-text-muted);font-size:.8rem;margin:0">{% if total_results %}{{ total_results }} résultat{{ total_results|pluralize }}{% endif %}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if can_manage_products %}
+    <a href="{% url 'product_list' %}?export=csv{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}" class="sf-btn sf-btn-ghost sf-btn-sm"><i class="bi bi-file-earmark-arrow-down"></i> CSV</a>
+    <a href="{% url 'product_create' %}" class="sf-btn sf-btn-primary sf-btn-sm"><i class="bi bi-plus-lg"></i> Nouveau produit</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="sf-card mb-4">
+  <form method="get" id="filter-form" hx-get="{% url 'product_list' %}" hx-target="#product-results" hx-trigger="change, keyup delay:350ms from:#sf-search-input, submit" hx-indicator="#htmx-loader" hx-push-url="true">
+    <div class="row g-3 mb-3">
+      <div class="col-md-5">
+        <div class="sf-search-bar">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" name="q" id="sf-search-input" value="{{ query }}" placeholder="Rechercher par nom, référence..." autocomplete="off">
+        </div>
+        <div id="sf-autocomplete" class="sf-autocomplete" hidden></div>
+      </div>
+      <div class="col-md-3">
+        <select name="category" class="sf-input form-select">
+          <option value="">Toutes les catégories</option>
+          {% for cat in categories %}<option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="sort" class="sf-input form-select">
+          <option value="name" {% if sort == 'name' %}selected{% endif %}>Nom A→Z</option>
+          <option value="-name" {% if sort == '-name' %}selected{% endif %}>Nom Z→A</option>
+          <option value="price" {% if sort == 'price' %}selected{% endif %}>Prix ↑</option>
+          <option value="-price" {% if sort == '-price' %}selected{% endif %}>Prix ↓</option>
+          <option value="stock" {% if sort == 'stock' %}selected{% endif %}>Stock ↑</option>
+          <option value="-stock" {% if sort == '-stock' %}selected{% endif %}>Stock ↓</option>
+          <option value="-created_at" {% if sort == '-created_at' %}selected{% endif %}>Plus récent</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="sf-input form-select">
+          <option value="">Tous statuts</option>
+          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Actif</option>
+          <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactif</option>
+        </select>
+      </div>
+    </div>
+    <div class="sf-pills">
+      <span style="font-size:.72rem;color:var(--sf-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Stock :</span>
+      <a href="?q={{ query }}&category={{ category_id }}&sort={{ sort }}&status={{ status_filter }}" class="sf-pill {% if not stock_filter %}active{% endif %}">Tous</a>
+      <a href="?q={{ query }}&category={{ category_id }}&sort={{ sort }}&status={{ status_filter }}&stock=low" class="sf-pill {% if stock_filter == 'low' %}active{% endif %}">⚠ Faible</a>
+      <a href="?q={{ query }}&category={{ category_id }}&sort={{ sort }}&status={{ status_filter }}&stock=out" class="sf-pill active-danger {% if stock_filter == 'out' %}active{% endif %}">🔴 Rupture</a>
+      {% if query or category_id or status_filter or stock_filter %}
+      <a href="{% url 'product_list' %}" class="sf-pill" style="margin-left:auto"><i class="bi bi-x-lg"></i> Effacer</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<div id="htmx-loader" class="htmx-indicator d-flex align-items-center gap-2 mb-3" style="color:var(--sf-text-muted);font-size:.8rem">
+  <div class="sf-spinner"></div> Chargement...
+</div>
+
+<div id="product-results">
+  {% include 'inventory/partials/product_grid.html' %}
+</div>
+{% endblock %}

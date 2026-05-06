@@ -1,0 +1,26 @@
+# ── Web ───────────────────────────────────────────────────────────────────────
+Django>=5.0,<5.2
+Pillow>=10.0
+django-crispy-forms>=2.1
+crispy-bootstrap5>=0.7
+
+# ── Async ─────────────────────────────────────────────────────────────────────
+celery>=5.3
+redis>=5.0
+
+# ── ML core ───────────────────────────────────────────────────────────────────
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+scikit-learn>=1.4
+
+# ── Forecasting ───────────────────────────────────────────────────────────────
+statsmodels>=0.14
+pmdarima>=2.0
+prophet>=1.1
+lightgbm>=4.1
+
+# ── TFT (optionnel — installer séparément si GPU disponible) ──────────────────
+# pytorch-forecasting>=1.0
+# pytorch-lightning>=2.1
+# torch>=2.1

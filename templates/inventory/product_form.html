@@ -1,0 +1,93 @@
+{% extends 'inventory/base.html' %}
+{% block title %}{{ action }}{% endblock %}
+{% block page_title %}{{ action }}{% endblock %}
+{% block content %}
+<div class="sf-pills mb-4">
+  <a href="{% url 'product_list' %}" class="sf-pill">Produits</a>
+  <span style="color:var(--sf-text-muted)">›</span>
+  <span class="sf-pill active">{{ action }}</span>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-xl-7">
+    <div class="sf-card sf-fade-in">
+      <div class="sf-card-header">
+        <span class="sf-card-title">
+          <i class="bi bi-box-seam-fill" style="color:var(--sf-primary)"></i> {{ action }}
+        </span>
+      </div>
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Nom du produit *</label>
+            {{ form.name }}
+            {% for e in form.name.errors %}<div style="font-size:.75rem;color:#f87171;margin-top:4px">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="col-12">
+            <label class="form-label">Description</label>
+            {{ form.description }}
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label">Prix (DH) *</label>
+            {{ form.price }}
+            {% for e in form.price.errors %}<div style="font-size:.75rem;color:#f87171;margin-top:4px">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label">Quantité en stock *</label>
+            {{ form.stock }}
+            {% for e in form.stock.errors %}<div style="font-size:.75rem;color:#f87171;margin-top:4px">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label">Seuil d'alerte</label>
+            {{ form.alert_threshold }}
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label">Catégorie *</label>
+            {{ form.category }}
+            {% for e in form.category.errors %}<div style="font-size:.75rem;color:#f87171;margin-top:4px">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label">Statut</label>
+            {{ form.status }}
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label">
+              SKU ML associé
+              <span style="color:var(--sf-info);font-size:.65rem;font-weight:400">(ex: COMP-001)</span>
+            </label>
+            {{ form.ml_sku_id }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">Photo du produit</label>
+            {{ form.photo }}
+            {% if product.photo %}
+            <div class="d-flex align-items-center gap-3 mt-2">
+              <img src="{{ product.photo.url }}" alt="Photo actuelle"
+                   style="height:60px;width:60px;object-fit:cover;border-radius:8px;border:1px solid var(--sf-border)">
+              <span style="font-size:.75rem;color:var(--sf-text-muted)">Photo actuelle</span>
+            </div>
+            {% endif %}
+            <img id="imgPreview" class="sf-img-preview" alt="Prévisualisation">
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="mt-3" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px 16px">
+          {% for e in form.non_field_errors %}<div style="font-size:.85rem;color:#f87171">{{ e }}</div>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-3 mt-4">
+          <button type="submit" class="sf-btn sf-btn-primary">
+            <i class="bi bi-check-lg"></i>
+            {% if is_create %}Ajouter le produit{% else %}Enregistrer{% endif %}
+          </button>
+          <a href="{% if product %}{% url 'product_detail' product.pk %}{% else %}{% url 'product_list' %}{% endif %}"
+             class="sf-btn sf-btn-ghost">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

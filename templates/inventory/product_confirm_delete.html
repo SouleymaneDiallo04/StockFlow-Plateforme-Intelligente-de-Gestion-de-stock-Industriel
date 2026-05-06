@@ -1,0 +1,37 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Supprimer {{ type }}{% endblock %}
+{% block page_title %}Confirmer la suppression{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="sf-card sf-fade-in">
+      <div style="text-align:center;padding:24px 0 16px">
+        <div style="font-size:3.5rem;margin-bottom:16px">🗑️</div>
+        <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:8px">Supprimer ce {{ type }} ?</h2>
+        <p style="color:var(--sf-text-muted);font-size:.875rem;margin:0">Cette action est <strong style="color:var(--sf-danger)">irréversible</strong>.</p>
+      </div>
+      <div class="sf-confirm-zone my-4">
+        <div style="font-size:.7rem;font-weight:600;color:var(--sf-text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Élément concerné</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--sf-text)">{{ object }}</div>
+        {% if type == 'produit' and object.reference %}
+        <div style="font-family:var(--sf-mono);font-size:.72rem;color:var(--sf-text-muted);margin-top:2px">{{ object.reference }}</div>
+        {% endif %}
+      </div>
+      <label class="d-flex align-items-center gap-2 mb-4" style="cursor:pointer;font-size:.85rem;color:var(--sf-text-muted)">
+        <input type="checkbox" id="confirm-delete-check" style="width:16px;height:16px;accent-color:var(--sf-danger)">
+        Je confirme vouloir supprimer définitivement ce {{ type }}
+      </label>
+      <form method="post">
+        {% csrf_token %}
+        <div class="d-flex gap-3">
+          <button type="submit" id="confirm-delete-btn" class="sf-btn sf-btn-danger flex-fill" disabled>
+            <i class="bi bi-trash3-fill"></i> Supprimer définitivement
+          </button>
+          <a href="{% if type == 'catégorie' %}{% url 'category_list' %}{% else %}{% url 'product_list' %}{% endif %}"
+             class="sf-btn sf-btn-ghost">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

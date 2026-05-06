@@ -1,0 +1,39 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Catégories{% endblock %}
+{% block page_title %}Gestion des catégories{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h1 style="font-size:1.4rem;font-weight:800;margin:0">Catégories</h1>
+  <a href="{% url 'category_create' %}" class="sf-btn sf-btn-primary"><i class="bi bi-folder-plus"></i> Nouvelle catégorie</a>
+</div>
+
+{% if categories %}
+<div class="sf-card sf-fade-in">
+  <table class="sf-table">
+    <thead><tr><th>Nom</th><th>Description</th><th>Produits</th><th>Créée le</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for cat in categories %}
+      <tr>
+        <td style="font-weight:600">{{ cat.name }}</td>
+        <td style="color:var(--sf-text-muted);font-size:.85rem;max-width:300px">{{ cat.description|default:"—"|truncatechars:60 }}</td>
+        <td><span class="sf-badge {% if cat.count == 0 %}sf-badge-inactive{% else %}sf-badge-active{% endif %}">{{ cat.count }} produit{{ cat.count|pluralize }}</span></td>
+        <td style="color:var(--sf-text-muted);font-size:.8rem">{{ cat.created_at|date:"d/m/Y" }}</td>
+        <td>
+          <div class="d-flex gap-2">
+            <a href="{% url 'category_update' cat.pk %}" class="sf-btn sf-btn-ghost sf-btn-sm"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'category_delete' cat.pk %}" class="sf-btn sf-btn-sm {% if cat.count > 0 %}disabled{% endif %}" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)" title="{% if cat.count > 0 %}Contient des produits{% else %}Supprimer{% endif %}"><i class="bi bi-trash3"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="sf-card"><div class="sf-empty">
+  <div class="sf-empty-icon">🏷️</div>
+  <div class="sf-empty-title">Aucune catégorie</div>
+  <a href="{% url 'category_create' %}" class="sf-btn sf-btn-primary mt-3"><i class="bi bi-plus-lg"></i> Créer</a>
+</div></div>
+{% endif %}
+{% endblock %}
