@@ -1,8 +1,8 @@
-# 📦 StockFlow
+# 📦AI StockFlow 
 
 <div align="center">
 
-**AI-Powered Industrial Inventory Management Platform**
+**Plateforme de Gestion de Stock Industriel Augmentée par l'Intelligence Artificielle**
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=flat-square&logo=django&logoColor=white)](https://djangoproject.com)
@@ -10,25 +10,28 @@
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
 [![MLflow](https://img.shields.io/badge/MLflow-Tracking-0194E2?style=flat-square&logo=mlflow&logoColor=white)](https://mlflow.org)
-[![License](https://img.shields.io/badge/License-MIT-10b981?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/Licence-MIT-10b981?style=flat-square)](LICENSE)
 
-*Built by a 4th-year AI & Data Science Engineering student — ENSAM Meknès*
+*Projet réalisé par un étudiant ingénieur 4ème année — IA & Data Science · ENSAM Meknès*
 
 </div>
 
 ---
 
-## 🎯 What & Why
+## 🎯 Problème résolu
 
-Industrial companies lose **4% of revenue to stockouts** while simultaneously immobilizing **20–30% of working capital in excess safety stock**. The root cause: static replenishment policies based on Wilson's EOQ (1913), applied unchanged to volatile, seasonal, intermittent industrial demand.
+Les entreprises industrielles perdent **4% de leur chiffre d'affaires en ruptures de stock** tout en immobilisant **20 à 30% de leur capital en surstock inutile** — simultanément. Cause racine : des politiques de réapprovisionnement statiques héritées de la formule Wilson (1913), appliquées sans adaptation à une demande industrielle volatile, saisonnière et intermittente.
 
-**StockFlow Intelligence** replaces static thresholds with a continuously-updated analytical engine combining:
-- Multi-model demand forecasting with statistically guaranteed prediction intervals
-- Monte Carlo simulation-based policy optimization with Pareto frontier visualization
-- Statistical Process Control on demand streams (8 WECO rules, I-MR, CUSUM, EWMA)
-- ABC-XYZ portfolio classification with automated management policy recommendations
+**StockFlow Intelligence** remplace ces seuils statiques par un moteur analytique continu combinant :
 
-> 💡 This is not a CRUD app with a chart. Every module is grounded in peer-reviewed methodology — conformal prediction, Croston's model, Page's CUSUM, Montgomery's SPC — and implemented from scratch.
+- 🔮 Prévision multi-modèles avec intervalles de confiance garantis par conformal prediction
+- 🎯 Optimisation des politiques de stock par simulation Monte Carlo avec frontière de Pareto
+- 📊 Contrôle Statistique des Processus (SPC) sur les flux de demande (8 règles WECO)
+- 🏷️ Classification ABC-XYZ du portefeuille avec recommandations de politique par classe
+- 🌍 Enrichissement par données externes (météo, calendrier industriel marocain)
+- 🔬 Tracking MLflow de toutes les expériences de prévision et d'optimisation
+
+> ⚠️ Ce projet n'est **pas** une application CRUD avec un dashboard. Chaque module est ancré dans une méthodologie publiée et peer-reviewed : conformal prediction (Romano et al., 2019), modèle de Croston, CUSUM de Page (1954), règles Western Electric (Montgomery, 2020).
 
 ---
 
@@ -36,333 +39,393 @@ Industrial companies lose **4% of revenue to stockouts** while simultaneously im
 
 ```
 stockflow/
-├── gestion_stock/              # Django project config + Celery setup
-│   ├── settings.py
-│   ├── urls.py
-│   └── celery.py
+├── gestion_stock/                  # Configuration Django + Celery
+│   ├── settings.py                 # CELERY_BROKER, ML_DATA_DIR, MESSAGE_TAGS
+│   ├── urls.py                     # Routing principal
+│   └── celery.py                   # App Celery + autodiscover tasks
 │
-├── inventory/                  # Web layer — fully decoupled from ML
-│   ├── models.py               # Product, Category, MLJobResult, SKUMLProfile
-│   ├── views.py                # CRUD + ML API polling endpoints
-│   ├── urls.py                 # 20+ routes including ML API
-│   ├── forms.py
-│   ├── permissions.py          # Role-based access (superadmin / admin / viewer)
-│   └── context_processors.py
+├── inventory/                      # Couche web — zéro import ML
+│   ├── models.py                   # Product, Category, MLJobResult, SKUMLProfile
+│   ├── views.py                    # CRUD + 10 vues ML + 2 endpoints API polling
+│   ├── urls.py                     # 25+ routes dont /api/ml/job/<id>/status/
+│   ├── forms.py                    # CategoryForm, ProductForm, RegisterForm
+│   ├── permissions.py              # is_superadmin(), is_admin_or_superadmin()
+│   └── context_processors.py      # user_role injecté dans tous les templates
 │
-└── ml/                         # ML engine — zero Django dependency
+└── ml/                             # Moteur ML — zéro dépendance Django
     ├── data/
-    │   ├── generator.py        # Parametric synthetic data generator (50 SKUs, 5 profiles)
-    │   ├── validator.py        # ADF, KPSS, Ljung-Box, ACF statistical validation
-    │   └── schemas.py          # Typed dataclasses for all ML data structures
+    │   ├── generator.py            # Générateur synthétique paramétrique (50 SKUs, 5 profils)
+    │   ├── validator.py            # Tests ADF, KPSS, Ljung-Box, ACF, distributions
+    │   └── schemas.py              # Dataclasses typées pour toutes les structures ML
     │
     ├── forecasting/
-    │   ├── base.py             # Abstract BaseForecaster + walk-forward cross-validation
-    │   ├── sarima.py           # SARIMAX with auto order selection (Hyndman-Khandakar)
-    │   ├── prophet_model.py    # Meta Prophet with custom monthly seasonality
-    │   ├── lgbm_model.py       # LightGBM with 25+ temporal features + quantile regression
-    │   ├── tft_model.py        # Temporal Fusion Transformer (PyTorch Forecasting)
-    │   ├── conformal.py        # Conformal prediction interval calibration (EnbPI)
-    │   └── evaluator.py        # MASE, sMAPE, Coverage Rate, Winkler Score
+    │   ├── base.py                 # BaseForecaster abstrait + walk-forward cross-validation
+    │   ├── sarima.py               # SARIMAX avec sélection auto d'ordre (Hyndman-Khandakar)
+    │   ├── prophet_model.py        # Meta Prophet avec saisonnalité mensuelle custom
+    │   ├── lgbm_model.py           # LightGBM : 25+ features + régression quantile (3 modèles)
+    │   ├── tft_model.py            # Temporal Fusion Transformer (PyTorch Forecasting)
+    │   ├── conformal.py            # Calibration des IC par conformal prediction (EnbPI)
+    │   └── evaluator.py            # MASE, sMAPE, Coverage Rate, Winkler Score
     │
     ├── optimization/
-    │   ├── monte_carlo.py      # 10,000-scenario inventory trajectory simulation
-    │   ├── pareto.py           # Pareto frontier extraction + Lean analysis
-    │   └── policy.py           # (r,Q) and (s,S) policy orchestrator
+    │   ├── monte_carlo.py          # Simulation de 10 000 trajectoires d'inventaire
+    │   ├── pareto.py               # Extraction frontière Pareto + analyse Lean
+    │   └── policy.py              # Orchestrateur politiques (r,Q) et (s,S)
     │
     ├── spc/
-    │   ├── control_charts.py   # I-MR, p-chart, CUSUM, EWMA
-    │   ├── western_electric.py # All 8 WECO rules with ARL₀-calibrated severity
-    │   └── report.py           # Automated SPC report generator
+    │   ├── control_charts.py       # I-MR, p-chart, CUSUM, EWMA
+    │   ├── western_electric.py     # 8 règles WECO avec sévérité calibrée sur ARL₀
+    │   └── report.py               # Générateur de rapport SPC automatique
     │
     ├── analysis/
-    │   ├── abc.py              # ABC-XYZ classification (Pareto 80/15/5 + CV)
-    │   ├── threshold_optimizer.py  # Auto-update Product.alert_threshold post-optimization
-    │   ├── mlflow_tracker.py   # MLflow experiment tracking (graceful degradation)
-    │   └── external_data.py    # Weather API (Open-Meteo) + Moroccan calendar features
+    │   ├── abc.py                  # Classification ABC-XYZ (Pareto 80/15/5 + CV)
+    │   ├── threshold_optimizer.py  # Mise à jour automatique de Product.alert_threshold
+    │   ├── mlflow_tracker.py       # Tracking MLflow avec dégradation gracieuse
+    │   └── external_data.py        # API Open-Meteo + calendrier marocain + features météo
     │
-    └── tasks.py                # 5 Celery tasks: generate, forecast, optimize, spc, abc
+    └── tasks.py                    # 5 tâches Celery : generate, forecast, optimize, spc, abc
 ```
 
-**Key architectural decision:** ML engine has zero Django imports. The web layer calls ML through Celery tasks and reads results from `MLJobResult` (JSON in SQLite). A data scientist can run any ML module as a standalone Python script. The web layer can be replaced without touching a single ML file.
+**Décision architecturale clé :** le moteur ML n'a aucun import Django. La couche web appelle le ML via des tâches Celery et lit les résultats depuis `MLJobResult` (JSON en base). Un data scientist peut exécuter n'importe quel module ML en script Python standalone. La couche web peut être remplacée sans toucher une seule ligne ML.
 
 ---
 
-## 🚀 Features Implemented
+## 🚀 Fonctionnalités implémentées
 
-### 🔐 Authentication & Role-Based Access Control
-- 3 roles: **Superadmin** (full CRUD + dataset generation), **Admin** (product CRUD + all ML modules), **Viewer** (read-only + all ML modules)
-- Django Groups + `@user_passes_test` decorators on all sensitive views
-- Registration with role selection, auto-assigned Django group
+### 🔐 Authentification & Contrôle d'accès par rôles
 
-### 📦 Operational Stock Management
-- Full CRUD on Products and Categories with image upload (Pillow)
-- Auto-generated unique reference (UUID-based, `PRD-XXXXXXXX`)
-- Per-product configurable alert threshold (updated automatically by ML optimization)
-- Stock badges: `En stock` / `Stock faible` / `Rupture` computed from `stock` vs `alert_threshold`
-- Link between operational `Product` and ML `SKU ID` for ML-to-operations feedback loop
-- CSV export with UTF-8 BOM (Excel-compatible), filters preserved in export
-- HTMX-powered search/filter/sort without full page reload
-- Product autocomplete via `/products/autocomplete/` JSON endpoint (debounced, 220ms)
-- Confirmation double-check (checkbox) before any destructive action
-- Category deletion blocked if products exist — explicit error message
+- **3 rôles** : Superadmin (CRUD complet + génération dataset), Admin (CRUD produits + tous les modules ML), Viewer (lecture seule + tous les modules ML)
+- Décorateurs `@user_passes_test` sur toutes les vues sensibles
+- Inscription avec choix de rôle, affectation automatique au groupe Django
+- Context processor `user_role` injecté globalement : `{{ is_superadmin }}`, `{{ can_manage_products }}`
+- Page login avec remplissage automatique des comptes de démonstration (un clic)
 
-### 📈 Module 1 — Demand Forecasting
+---
 
-#### Models
-| Model | Library | Key Implementation Detail |
-|---|---|---|
-| SARIMAX | `pmdarima` | Auto order selection via Hyndman-Khandakar (AIC), log1p transform, exogenous regressors |
-| Prophet | `prophet` | Custom 30.44-day monthly seasonality, multiplicative mode, event regressors |
-| LightGBM | `lightgbm` | 25+ features, quantile regression (3 separate models), recursive multi-step |
-| TFT | `pytorch-forecasting` | Variable Selection Networks, multi-head attention, simultaneous quantile output |
+### 📦 Gestion opérationnelle du stock
+
+- CRUD complet Produits et Catégories avec upload photo (Pillow)
+- Référence unique auto-générée (`PRD-XXXXXXXX`, UUID tronqué)
+- Seuil d'alerte configurable par produit, mis à jour automatiquement après optimisation ML
+- Badges stock dynamiques : `En stock` / `Stock faible` / `Rupture` calculés depuis `stock` vs `alert_threshold`
+- Champ `ml_sku_id` qui lie chaque produit opérationnel à son SKU dans le catalogue ML — boucle de feedback ML → opérations
+- Export CSV avec BOM UTF-8 (compatible Excel), filtres courants préservés dans l'URL d'export
+- Recherche/filtre/tri/pagination **HTMX** sans rechargement de page
+- **Autocomplete** produits via endpoint JSON `/products/autocomplete/` (debounce 220ms)
+- Double confirmation par checkbox avant toute suppression
+- Suppression de catégorie bloquée si elle contient des produits — message explicite
+
+---
+
+### 📈 Module 1 — Prévision de demande
+
+#### Modèles implémentés
+
+| Modèle | Bibliothèque | Détail d'implémentation |
+|--------|-------------|------------------------|
+| **SARIMAX** | `pmdarima` | Sélection auto ordre `(p,d,q)(P,D,Q,s)` via Hyndman-Khandakar (critère AIC), transformation log1p, régresseurs exogènes |
+| **Prophet** | `prophet` | Saisonnalité mensuelle custom (période 30.44j, Fourier order 5), mode multiplicatif, régresseurs événements |
+| **LightGBM** | `lightgbm` | 25+ features temporelles, régression quantile (3 modèles séparés : point/bas/haut), prévision récursive multi-step |
+| **TFT** | `pytorch-forecasting` | Variable Selection Networks, multi-head attention, sorties quantiles simultanées, interprétabilité native |
 
 #### Feature Engineering (LightGBM)
-- Lags: `t-1, t-2, t-3, t-7, t-14, t-21, t-28`
-- Rolling: mean/std/max over 7, 14, 30 days
-- Cyclical encoding: `sin/cos` of day-of-week, week-of-year, month, day-of-month
-- Binary: `is_monday`, `is_friday`, `is_weekend`, `is_month_start`, `is_month_end`
-- External: `event_flag`, `is_holiday`, `is_ramadan`, `week_sin/cos`
+```python
+# Lags
+lag_1, lag_2, lag_3, lag_7, lag_14, lag_21, lag_28
 
-#### Evaluation Protocol
-- **Walk-forward cross-validation** (3 folds) — the only valid method for time series
-- **MASE** as primary metric (scale-free, interpretable vs naive seasonal benchmark)
-- **Coverage Rate** — empirical calibration check of prediction intervals
-- **Winkler Score** — simultaneous penalty on width and coverage failures (M5 standard)
-- **sMAPE** — symmetric, robust to near-zero values
+# Rolling statistics (shift=1 pour éviter la fuite de données)
+roll_mean_7/14/30,  roll_std_7/14/30,  roll_max_7/14/30
+
+# Encodage cyclique (sin/cos — évite les discontinuités entre périodes)
+sin_dow, cos_dow        # jour de la semaine
+sin_week, cos_week      # semaine de l'année
+sin_month, cos_month    # mois
+sin_dom, cos_dom        # jour du mois
+
+# Calendrier industriel marocain
+is_holiday, is_ramadan, is_end_of_month, is_start_of_month
+
+# Événements exogènes
+event_flag              # pic de demande, rupture fournisseur
+```
+
+#### Protocole d'évaluation
+- **Walk-forward cross-validation** (3 folds) — seule méthode valide pour les séries temporelles. Le k-fold standard viole l'ordre causal.
+- **MASE** comme métrique principale : scale-free, comparable entre SKUs d'échelles différentes. MASE < 1 = meilleur que le modèle naïf saisonnier.
+- **Coverage Rate** : validation empirique de la calibration des IC. Un IC à 90% doit contenir ~90% des valeurs réalisées.
+- **Winkler Score** : pénalise simultanément les IC trop larges et les non-couvertures (standard M5 et GEFCom).
+- **sMAPE** : robuste aux valeurs proches de zéro (fréquentes en demande industrielle).
 
 #### Conformal Prediction (EnbPI)
-- Distribution-free interval calibration (Romano et al., 2019 + Xu & Xie 2021)
-- No Gaussian assumption required
-- Calibration residuals from recent window only (EnbPI adaptation for time series exchangeability)
-- Coverage guaranteed at nominal level on calibration set
+- Calibration des intervalles **sans hypothèse distributionnelle** (Romano et al., 2019 + Xu & Xie 2021)
+- Applicable à tous les modèles de base (SARIMAX, Prophet, LightGBM, TFT)
+- Résidus de calibration sur fenêtre glissante récente uniquement (adaptation EnbPI à la non-échangeabilité temporelle)
+- Coverage garanti au niveau nominal sur l'ensemble de calibration
 
-### 🎯 Module 2 — Policy Optimization
+---
 
-#### Monte Carlo Simulation
-- **10,000 scenarios** per policy candidate
-- Demand sampled from log-normal (calibrated on historical μ, σ)
-- Lead times from log-normal (μ=2.0, σ=0.4 → median ≈ 7.4 days, P95 ≈ 14 days)
-- Full inventory simulation: daily demand, pending orders, stockout tracking
-- Cost model: `holding_cost × stock + ordering_cost × n_orders + shortage_cost × unmet_demand`
-- Shortage cost asymmetry: 7.5× holding cost (empirically documented in supply chain literature)
+### 🎯 Module 2 — Optimisation des politiques de réapprovisionnement
 
-#### Pareto Frontier
-- 15×15 grid search over `(reorder_point, order_quantity)` space
-- Two antagonistic objectives: total cost ↓ and stockout probability ↓
-- Non-dominated solution extraction (true Pareto optimality)
-- Interactive Plotly scatter — hover shows full policy parameters
-- Optimal point selection at target service level (configurable 80–99%)
+#### Simulation Monte Carlo
+- **10 000 scénarios** par politique candidate
+- Demande journalière tirée depuis une log-normale calibrée sur les paramètres historiques du SKU
+- Délais fournisseurs tirés depuis une log-normale (μ=2.0, σ=0.4 → médiane ≈ 7.4j, P95 ≈ 14j) — distribution empiriquement validée pour les délais logistiques
+- Simulation complète de l'inventaire : réception commandes, satisfaction demande, tracking ruptures, comptabilisation coûts
+- Modèle de coût : `coût_stockage × stock_moyen + coût_commande × nb_commandes + coût_rupture × demande_non_servie`
+- **Asymétrie shortage/holding** : coût de rupture = 7.5× coût de stockage (ratio documenté en supply chain)
+- Politiques **(r,Q)** et **(s,S)** supportées
 
-#### Lean Six Sigma Analysis
-- Capital reduction vs Wilson EOQ baseline (muda de surstock quantified)
-- Annual cost savings (DH)
-- Service level improvement (percentage points)
-- Three Sigma (99.73%) and Six Sigma (99.9997%) reference points
-- Automatic update of `Product.alert_threshold` post-optimization
+#### Frontière de Pareto
+- Scan sur grille 15×15 dans l'espace `(point_de_commande, quantité_commandée)`
+- **Deux objectifs antagonistes** : coût total annuel ↓ et probabilité de rupture ↓
+- Extraction des solutions non-dominées (optimalité Pareto stricte)
+- Visualisation Plotly interactive avec annotation du point optimal
+- Sélection du point optimal au taux de service cible configurable (80–99%)
 
-### 📊 Module 3 — Statistical Process Control
+#### Analyse Lean Six Sigma
+- Réduction du capital immobilisé vs baseline Wilson EOQ (muda de surstock quantifié en DH)
+- Économie annuelle totale (DH/an)
+- Amélioration du taux de service (points de pourcentage)
+- Points de référence Three Sigma (99.73%) et Six Sigma (99.9997%)
+- **Mise à jour automatique** de `Product.alert_threshold` en base Django après chaque optimisation réussie
 
-#### Control Charts
-| Chart | Method | Detects |
-|---|---|---|
-| I-MR | σ from moving ranges (d2 factor) | Point anomalies, process spread |
-| p-chart | 30-day rolling stockout proportion | Service quality drift |
-| CUSUM | Page (1954), k=0.5σ, h=5σ | Small mean shifts (1–2σ) missed by Shewhart |
-| EWMA | λ=0.2, L=3.0 | Progressive drift, complementary to CUSUM |
+---
 
-#### 8 Western Electric Rules (all implemented)
-| Rule | Description | Severity | ARL₀ |
-|---|---|---|---|
-| R1 | 1 point beyond ±3σ | 🔴 Critical | ~370 |
-| R2 | 9 consecutive points same side | 🔴 Critical | ~250 |
-| R3 | 6 consecutive monotone trend | 🔴 Critical | ~200 |
-| R4 | 14 alternating up/down | 🟡 Warning | ~50 |
-| R5 | 2/3 last points in Zone A | 🟡 Warning | ~90 |
-| R6 | 4/5 last points in Zone B+ | 🟡 Warning | ~56 |
-| R7 | 15 consecutive in Zone C | 🔵 Info | ~33 |
-| R8 | 8 consecutive outside Zone C | 🔵 Info | ~50 |
+### 📊 Module 3 — Contrôle Statistique des Processus (SPC/MSP)
 
-- Every signal includes business-language interpretation + corrective action recommendation
-- Control limit zones (A/B/C) rendered as shaded bands in Plotly
-- Out-of-control points marked with ❌ symbol, warning points in amber
+#### Cartes de contrôle
 
-### 📊 Module 4 — ABC-XYZ Portfolio Classification
-- **ABC** by annual consumed value (Pareto 80/15/5)
-- **XYZ** by coefficient of variation (X: CV<0.25, Y: 0.25–0.75, Z: >0.75)
-- 9-class matrix with specific replenishment policy per class (AX → JIT, CZ → make-on-order)
-- Interactive Pareto curve (bars + cumulative % dual-axis)
-- Filterable ranking table by class
-- Portfolio summary: SKU count, value share, XYZ breakdown per class
+| Carte | Méthode | Ce qu'elle détecte |
+|-------|---------|-------------------|
+| **I-MR** | σ estimé depuis les étendues mobiles (facteur d2=1.128) | Anomalies ponctuelles, dérive de la dispersion |
+| **p-chart** | Proportion ruptures sur fenêtre glissante 30j | Dérive de la qualité de service |
+| **CUSUM** | Page (1954), k=0.5σ, h=5σ, ARL₀≈465 | Décalages de moyenne 1–2σ manqués par Shewhart |
+| **EWMA** | λ=0.2, L=3.0 | Dérives progressives, complémentaire au CUSUM |
 
-### 🌍 External Data Integration
-- **Open-Meteo API** (free, no API key): historical weather for 5 Moroccan cities
-- Calendar features: Moroccan public holidays, Ramadan periods, end-of-month effects
-- Cyclical encoding of all calendar features (sin/cos) to avoid boundary discontinuities
-- Graceful fallback to synthetic weather if API unavailable
+#### 8 Règles Western Electric (toutes implémentées)
+
+| Règle | Description | Sévérité | ARL₀ |
+|-------|------------|----------|------|
+| R1 | 1 point au-delà de ±3σ | 🔴 Critique | ~370 |
+| R2 | 9 pts consécutifs même côté de la CL | 🔴 Critique | ~250 |
+| R3 | 6 pts consécutifs en tendance monotone | 🔴 Critique | ~200 |
+| R4 | 14 pts alternant haut/bas | 🟡 Alerte | ~50 |
+| R5 | 2 des 3 derniers pts en Zone A | 🟡 Alerte | ~90 |
+| R6 | 4 des 5 derniers pts en Zone B+ | 🟡 Alerte | ~56 |
+| R7 | 15 pts consécutifs en Zone C | 🔵 Info | ~33 |
+| R8 | 8 pts consécutifs hors Zone C | 🔵 Info | ~50 |
+
+- Chaque signal déclenché inclut son **interprétation métier** + **action corrective recommandée**
+- Zones A/B/C affichées en bandes colorées dans Plotly
+- Points hors contrôle marqués avec symbole ❌, points d'alerte en ambre
+- Rapport SPC automatique avec statut global : `in_control` / `warning` / `out_of_control`
+
+---
+
+### 🏷️ Module 4 — Analyse ABC-XYZ
+
+- **ABC** par valeur consommée annuelle (Pareto 80/15/5)
+- **XYZ** par coefficient de variation (X: CV<0.25, Y: 0.25–0.75, Z: >0.75)
+- **9 classes** de la matrice avec politique de gestion spécifique par classe :
+
+| Classe | Politique recommandée |
+|--------|----------------------|
+| **AX** | Flux tiré. Stock minimal. Approvisionnement JIT. |
+| **AY** | Stock de sécurité modéré. Révision fréquente des paramètres. |
+| **AZ** | Gestion sur mesure. Commandes fréquentes. Approvisionnement d'urgence. |
+| **BX/BY/BZ** | Gestion standard. EOQ applicable. |
+| **CX/CY** | Consolider les commandes. Évaluer la nécessité de la référence. |
+| **CZ** | Candidat à l'élimination ou au make-on-order. CoQ > valeur. |
+
+- Courbe de Pareto interactive (barres + % cumulé double axe) en Plotly
+- Matrice ABC-XYZ en barplot coloré
+- Tableau de classement complet filtrable par classe
+- Résumé portefeuille : nombre de SKUs, part de valeur, répartition XYZ par classe
+
+---
+
+### 🌍 Données externes
+
+- **Open-Meteo API** (gratuite, sans clé) : météo historique pour 5 villes industrielles marocaines (Casablanca, Rabat, Meknès, Fès, Tanger)
+- Température max/min, précipitations, indicateurs `is_extreme_heat`, `is_cold`, `is_rainy`
+- **Calendrier marocain** : jours fériés officiels, périodes de Ramadan 2023–2024, effets fin/début de mois
+- Encodage cyclique sin/cos de toutes les features calendaires pour éviter les discontinuités de frontière
+- Fusion automatique avec les séries de demande pour enrichir les régresseurs SARIMAX et Prophet
+- **Dégradation gracieuse** : données météo synthétiques réalistes générées si l'API est indisponible
+
+---
 
 ### 🔬 MLflow Experiment Tracking
-- Tracks every forecasting run: model name, SKU, hyperparameters, MASE, Coverage, Winkler, training time
-- Tracks every optimization run: policy parameters, service level, annual cost, capital reduction
-- `get_best_model(sku_id)` retrieves best historical model for any SKU
-- Full graceful degradation: zero breaking changes if MLflow not installed
 
-### 🗄️ Synthetic Data Generator
-50 SKUs × 730 days with 5 demand profiles:
+- Enregistre chaque run de prévision : modèle, SKU, profil, hyperparamètres, MASE, Coverage, Winkler, temps d'entraînement
+- Enregistre chaque run d'optimisation : type de politique, point de commande, quantité, taux de service, coût annuel, réduction de capital
+- `get_best_model(sku_id)` récupère le meilleur modèle historique pour un SKU donné
+- **Dégradation gracieuse complète** : si MLflow n'est pas installé, toutes les méthodes sont no-ops. Aucune exception levée.
 
-| Profile | SKUs | Characteristics |
-|---|---|---|
-| `fast_mover` | Composants (12) | Stable, continuous, low intermittency |
-| `seasonal` | Matières (12) | Strong monthly seasonality, long trends |
-| `fast/slow_mover` | Consommables (14) | Mixed, moderate variability |
-| `lumpy` | Équipements (12) | Intermittency 60%, Croston model, spare parts |
+---
 
-**Mathematical model:**
+### 🗄️ Générateur de données synthétiques
+
+**50 SKUs × 730 jours** avec 5 profils de demande :
+
+| Profil | Catégorie (SKUs) | Caractéristiques |
+|--------|----------------|------------------|
+| `fast_mover` | Composants électroniques (12) | Demande continue, faible intermittence |
+| `seasonal` | Matières premières (12) | Forte saisonnalité mensuelle, tendances longues |
+| `fast/slow_mover` | Consommables (14) | Mix, variabilité modérée |
+| `lumpy` | Équipements/Pièces de rechange (12) | Intermittence 60%, modèle de Croston |
+
+**Modèle mathématique (bruit multiplicatif — variance croît avec le niveau) :**
 ```
 demand(t) = trend(t) × seasonal_weekly(t) × seasonal_monthly(t) × (1 + events(t) + noise(t))
 
-trend(t)            = base + β·t + γ·t²
-seasonal_weekly(t)  = 1 + A·sin(2πt/7 + φ) + 0.3A·sin(4πt/7 + φ)
-seasonal_monthly(t) = 1 + B·sin(2πt/30.44) + 0.4B·sin(4πt/30.44 + π/4)
-noise(t)            = multiplicative, ~ TruncNormal(0, σ_rel)    ← variance grows with level
-lead_time           ~ LogNormal(μ_lt, σ_lt)                      ← right-skewed delays
+trend(t)              = base + β·t + γ·t²
+seasonal_weekly(t)    = 1 + A·sin(2πt/7 + φ) + 0.3A·sin(4πt/7 + φ)   [Fourier order 2]
+seasonal_monthly(t)   = 1 + B·sin(2πt/30.44) + 0.4B·sin(4πt/30.44 + π/4)
+noise(t)              ~ TruncNormal(0, σ_rel)    ← bruit MULTIPLICATIF
+events(t)             ~ Bernoulli(p_event) avec persistance 1–3 jours
+lead_time             ~ LogNormal(μ_lt, σ_lt)    ← délais non-négatifs, queue droite
 ```
 
-**Statistical validation (automatic):**
-- ADF + KPSS stationarity tests (complementary hypotheses)
-- Ljung-Box autocorrelation test at lags 7, 14, 30
-- ACF seasonal peak verification
-- CV, skewness, intermittency rate checks
-- Log-normal parameter recovery for lead times
-
-### ⚡ Async Task Architecture
-| Task | Celery name | Time limit | Output |
-|---|---|---|---|
-| Dataset generation | `ml.generate_dataset` | 3 min | CSV + JSON metadata |
-| Multi-model forecast | `ml.forecast_sku` | 10 min | Comparison table + all forecasts |
-| Policy optimization | `ml.optimize_policy` | 6 min | Pareto frontier + Lean analysis |
-| SPC report | `ml.spc_report` | 2 min | 4 charts + signals + recommendations |
-| ABC-XYZ analysis | `ml.abc_analysis` | 2 min | Full ranking + Pareto data |
-
-HTMX polls `/api/ml/job/<id>/status/` every 2s. No JavaScript framework needed. Job results stored as JSON in `MLJobResult` (SQLite), aggregated to `SKUMLProfile` for dashboard display.
+**Validation statistique automatique :**
+- Tests ADF + KPSS (hypothèses complémentaires sur la stationnarité)
+- Test de Ljung-Box aux lags 7, 14, 30
+- Vérification du pic ACF saisonnier
+- Vérification CV, asymétrie, taux d'intermittence
+- Récupération des paramètres log-normaux des délais
 
 ---
 
-## 🖥️ UI / UX
+### ⚡ Architecture asynchrone (Celery + Redis)
 
-- **Dark/Light theme** toggle, persisted in `localStorage`
-- **Fixed sidebar** with role-conditional navigation
-- **Toast notifications** (auto-dismiss 4.5s) for all Django messages
-- **Animated counters** on dashboard stats (ease-out cubic)
-- **Plotly** for all ML visualizations: forecast charts with IC bands, Pareto frontier, control charts with zone shading, ABC Pareto curve
-- **Chart.js** for operational dashboard (doughnut by category)
-- **HTMX** for product search/filter/sort/pagination without page reload
-- **Product autocomplete** (debounced 220ms, JSON endpoint)
-- Responsive — collapsible sidebar on mobile
+| Tâche | Nom Celery | Limite | Output |
+|-------|-----------|--------|--------|
+| Génération dataset | `ml.generate_dataset` | 3 min | CSV + métadonnées JSON |
+| Prévision multi-modèles | `ml.forecast_sku` | 10 min | Tableau comparatif + toutes prévisions |
+| Optimisation politique | `ml.optimize_policy` | 6 min | Frontière Pareto + analyse Lean |
+| Rapport SPC | `ml.spc_report` | 2 min | 4 cartes + signaux + recommandations |
+| Analyse ABC-XYZ | `ml.abc_analysis` | 2 min | Classement complet + données Pareto |
+
+HTMX interroge `/api/ml/job/<id>/status/` toutes les 2 secondes. Résultats stockés en JSON dans `MLJobResult` (SQLite), agrégés vers `SKUMLProfile` pour l'affichage dashboard.
 
 ---
 
-## 🔧 Tech Stack — Justified
+## 🖥️ Interface utilisateur
 
-| Technology | Version | Why This, Not Something Else |
-|---|---|---|
-| **Django** | 5.x | Batteries-included ORM, admin, auth, migrations. FastAPI would require rebuilding all of this. |
-| **Celery + Redis** | 5.3 / 7 | True async workers with retry, time limits, task routing. Django-Q is simpler but less production-credible. Background threads would block the WSGI server. |
-| **pmdarima** | 2.x | `auto_arima` with stepwise Hyndman-Khandakar. Manual grid search over (p,d,q,P,D,Q) is O(n⁵) and produces equivalent results with 10× the compute. |
-| **Prophet** | 1.1 | Best-in-class for missing values, structural breaks, and holiday effects. statsmodels SARIMA requires complete series. |
-| **LightGBM** | 4.x | Faster than XGBoost on tabular features, native quantile regression, `n_jobs=-1` parallelism. Neural alternatives (N-BEATS) are harder to interpret. |
-| **PyTorch Forecasting** | 1.x | Only library with TFT production implementation including Variable Selection Networks and attention visualization. |
-| **Conformal Prediction** | custom | Distribution-free. All parametric alternatives (Bayesian, bootstrap) require assumptions that fail on industrial residuals. |
-| **NumPy/SciPy** | — | Monte Carlo at 10,000 scenarios needs vectorized ops. pandas would be 5× slower for inner simulation loop. |
-| **MLflow** | 2.x | Standard in ML engineering. Experiment comparison, parameter logging, model registry. W&B requires an account. |
-| **HTMX** | 1.9 | Partial page updates with 0 JavaScript. React/Vue would triple the frontend complexity for no gain in this use case. |
-| **Plotly** | 2.27 | Interactive zoom, hover, annotation on control charts and Pareto frontiers. Matplotlib is static. Chart.js lacks the financial-grade interactivity needed. |
-| **SQLite** | — | Sufficient for a demonstration. Connection string in `settings.py` is the only change needed for PostgreSQL. |
+- **Thème sombre/clair** avec toggle, persisté en `localStorage`
+- Sidebar fixe avec navigation conditionnelle selon le rôle
+- **Toast notifications** auto-dismiss (4.5s) pour tous les messages Django
+- **Compteurs animés** sur les KPIs du dashboard (ease-out cubique)
+- **Plotly** pour toutes les visualisations ML : prévisions avec bandes IC, frontière Pareto annotée, cartes de contrôle avec zones A/B/C, courbe Pareto ABC
+- **Chart.js** pour le dashboard opérationnel (doughnut répartition catégories)
+- **HTMX** pour la recherche/filtre/tri/pagination produits sans rechargement
+- Autocomplete produits avec debounce 220ms
+- Design responsive — sidebar collapsable sur mobile
+
+---
+
+## 🔧 Stack technique — Justifications des choix
+
+| Technologie | Version | Pourquoi ce choix, pas un autre |
+|-------------|---------|--------------------------------|
+| **Django** | 5.x | ORM, admin, auth, migrations intégrés. FastAPI aurait nécessité de tout reconstruire pour un gain marginal. |
+| **Celery + Redis** | 5.3 / 7 | Workers asynchrones vrais avec retry, time limits, routing. Django-Q est plus simple mais moins crédible en production. Les threads background bloqueraient le serveur WSGI. |
+| **pmdarima** | 2.x | `auto_arima` avec algorithme Hyndman-Khandakar stepwise. La recherche manuelle sur grille complète est O(n⁵) pour un résultat équivalent. |
+| **Prophet** | 1.1 | Meilleur pour les données manquantes, les ruptures structurelles et les effets de jours fériés. statsmodels SARIMA nécessite une série complète. |
+| **LightGBM** | 4.x | Plus rapide qu'XGBoost sur features tabulaires, régression quantile native, parallélisme `n_jobs=-1`. Les alternatives neurales (N-BEATS) sont moins interprétables. |
+| **PyTorch Forecasting** | 1.x | Seule bibliothèque avec implémentation TFT de production incluant Variable Selection Networks et visualisation d'attention. |
+| **Conformal Prediction** | custom | Sans distribution. Toutes les alternatives paramétriques (bayésien, bootstrap) requièrent des hypothèses qui échouent sur les résidus industriels. |
+| **NumPy/SciPy** | — | Monte Carlo 10 000 scénarios nécessite des ops vectorisées. pandas serait 5× plus lent dans la boucle interne de simulation. |
+| **MLflow** | 2.x | Standard en ML engineering. Comparaison d'expériences, logging de paramètres, registre de modèles. Weights & Biases nécessite un compte externe. |
+| **HTMX** | 1.9 | Mises à jour partielles de page sans framework JS. React/Vue aurait triplé la complexité frontend sans gain dans ce cas d'usage. |
+| **Plotly** | 2.27 | Zoom interactif, hover, annotations sur les cartes de contrôle et les frontières de Pareto. Matplotlib est statique. Chart.js manque de la granularité nécessaire. |
+| **SQLite** | — | Suffisant pour la démonstration. Le passage à PostgreSQL se fait en modifiant uniquement `DATABASES` dans `settings.py`. |
 
 ---
 
 ## ⚙️ Installation
 
 ```bash
-# 1. Clone & environment
-git clone https://github.com/YOUR_USERNAME/stockflow-intelligence.git
+# 1. Cloner et environnement
+git clone https://github.com/VOTRE_USERNAME/stockflow-intelligence.git
 cd stockflow-intelligence
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate          # Windows : .venv\Scripts\activate
 
-# 2. Dependencies
+# 2. Dépendances
 pip install -r requirements.txt
 
-# 3. Database
+# 3. Base de données
 python manage.py migrate
-python manage.py seed_data       # Groups + test accounts + 10 demo products
+python manage.py seed_data         # Crée groupes + comptes de test + 10 produits démo
 
-# 4. Services (separate terminals)
+# 4. Services (terminaux séparés)
 redis-server
 celery -A gestion_stock worker --loglevel=info
 
-# 5. Run
+# 5. Lancer
 python manage.py runserver
 ```
 
-### Optional
+### Optionnel
 
 ```bash
-# TFT model
+# Modèle TFT
 pip install pytorch-forecasting pytorch-lightning torch
 
-# MLflow tracking UI
+# Interface MLflow
 pip install mlflow
-mlflow ui                        # → http://localhost:5000
+mlflow ui                          # → http://localhost:5000
 ```
 
----
-
-## 👤 Test Accounts
-
-| User | Password | Role | Permissions |
-|---|---|---|---|
-| `super1` | `super1pass` | Superadmin | Full CRUD + All ML + Dataset generation |
-| `admin1` | `admin1pass` | Admin | Product CRUD + All ML modules |
-| `user1` | `user1pass` | Viewer | Read-only + All ML modules |
-
-**First run:** log in as `super1` → Intelligence → Generate Dataset (730 days) → all ML modules become operational.
+**Première utilisation ML :** se connecter en `super1` → Intelligence → Générer dataset (730 jours) → tous les modules ML deviennent opérationnels.
 
 ---
 
-## 📐 Methodological Limitations (documented honestly)
+## 👤 Comptes de test
+
+| Utilisateur | Mot de passe | Rôle | Permissions |
+|------------|-------------|------|-------------|
+| `super1` | `super1pass` | Superadmin | CRUD complet + tous modules ML + génération dataset |
+| `admin1` | `admin1pass` | Admin | CRUD produits + tous modules ML |
+| `user1` | `user1pass` | Viewer | Lecture seule + tous modules ML |
+
+---
+
+## 📐 Limitations méthodologiques documentées
 
 | Limitation | Impact | Mitigation |
-|---|---|---|
-| Synthetic data — no cross-SKU correlations | Substitution effects not captured | Modular generator accepts real CSV |
-| EnbPI exchangeability violation | Coverage guarantee is approximate | Recent-window calibration reduces bias |
-| Pareto grid (15×15) | Frontier density limited | NSGA-II would improve; grid is sufficient for demo |
-| MC assumes daily demand independence | Underestimates correlated risk | Acceptable for i.i.d. SKUs; noted in docs |
+|-----------|--------|-----------|
+| Données synthétiques — pas de corrélations inter-SKUs | Effets de substitution non capturés | Le générateur accepte un CSV réel en remplacement |
+| Violation de l'échangeabilité pour EnbPI | Couverture garantie approximative | Calibration sur fenêtre glissante récente réduit le biais |
+| Frontière Pareto sur grille 15×15 | Densité de la frontière limitée | NSGA-II améliorerait ; la grille est suffisante en démonstration |
+| Monte Carlo avec demandes journalières indépendantes | Sous-estime le risque en cas de corrélation sérielle | Acceptable pour les SKUs à demande i.i.d. ; documenté |
 
 ---
 
-## 📚 References
+## 📚 Références
 
-- Montgomery, D.C. (2020). *Introduction to Statistical Quality Control*, 8th ed. Wiley.
-- Lim et al. (2021). Temporal Fusion Transformers for interpretable multi-horizon time series forecasting. *IJF*.
-- Romano, Y., Patterson, E., Candès, E. (2019). Conformalized Quantile Regression. *NeurIPS*.
+- Montgomery, D.C. (2020). *Introduction to Statistical Quality Control*, 8e éd. Wiley.
+- Lim et al. (2021). Temporal Fusion Transformers for interpretable multi-horizon time series forecasting. *IJF*, 37(4).
+- Romano, Y., Patterson, E., Candès, E. (2019). Conformalized Quantile Regression. *NeurIPS*, 32.
 - Xu, C., Xie, Y. (2021). Conformal Prediction Interval for Dynamic Time-Series. *ICML*.
-- Syntetos, A.A., Boylan, J.E. (2005). The accuracy of intermittent demand estimates. *IJF*.
-- Page, E.S. (1954). Continuous inspection schemes. *Biometrika*.
-- Chopra, S., Meindl, P. (2016). *Supply Chain Management*, 6th ed. Pearson.
+- Syntetos, A.A., Boylan, J.E. (2005). The accuracy of intermittent demand estimates. *IJF*, 21(2).
+- Page, E.S. (1954). Continuous inspection schemes. *Biometrika*, 41(1–2).
+- Chopra, S., Meindl, P. (2016). *Supply Chain Management*, 6e éd. Pearson.
 
 ---
 
-## 🎓 About
+## 🎓 À propos
 
-**Author:** 4th-year engineering student — AI & Data Science: Industrial Systems  
-**Institution:** ENSAM Meknès — Génie Industriel (Lean Six Sigma, MSP, Quality Management)  
+**Auteur :** Étudiant ingénieur 4ème année — IA & Data Science : Systèmes Industriels  
+**Établissement :** ENSAM Meknès — Génie Industriel (Lean Six Sigma, MSP, Démarche Qualité)  
 
-This project demonstrates that the gap between academic ML methodology and production-grade industrial tooling can be closed by a single engineer with sufficient domain knowledge and two months. The Lean Six Sigma background is not decorative — it shapes every modeling choice, from the asymmetric shortage/holding cost ratio to the Six Sigma service level reference points.
+Ce projet démontre que l'écart entre la méthodologie ML académique et les outils opérationnels industriels peut être comblé par un seul ingénieur avec suffisamment de connaissance du domaine et deux mois de travail. La formation Lean Six Sigma n'est pas décorative — elle structure chaque choix de modélisation, du ratio asymétrique rupture/stockage aux points de référence Three Sigma et Six Sigma.
 
 ---
 
 <div align="center">
 
-**If this project is useful to you, a ⭐ on GitHub goes a long way.**
+**Si ce projet vous est utile, une ⭐ sur GitHub est appréciée.**
 
 </div>
